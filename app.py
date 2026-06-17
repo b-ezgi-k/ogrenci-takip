@@ -14,27 +14,48 @@ st.set_page_config(
 
 # Arayüzü renklendirmek için özel CSS kodları
 st.markdown("""
+   st.markdown("""
     <style>
-        /* Ana Arka Plan */
+        /* 1. Ana Arka Plan */
         .stApp {
             background-color: #FFFFFF;
         }
-        /* Aktif Sekmeler ve Buton Renkleri */
-        button[data-baseweb="tab"], .stButton>button {
+        
+        /* 2. Tüm Sekmelerin, Butonların ve Çizgilerin Vurgu Rengi (Kırmızı) */
+        button[data-baseweb="tab"] {
             color: #31333F !important;
             border-bottom-color: #FF4B4B !important;
         }
-        /* Butonun üzerine gelindiğinde veya tıklandığında */
-        .stButton>button:hover {
-            border-color: #FF4B4B !important;
-            color: #FF4B4B !important;
+        
+        /* Aktif olan, seçili sekmenin altındaki çizgi */
+        div[data-baseweb="tab-highlight-bar"] {
+            background-color: #FF4B4B !important;
         }
-        /* Yan Menü Arka Planı */
+        
+        /* Butonların kenarlıkları ve yazıları */
+        .stButton>button {
+            color: #FF4B4B !important;
+            border-color: #FF4B4B !important;
+            background-color: transparent !important;
+        }
+        
+        /* Butonun üzerine gelindiğinde */
+        .stButton>button:hover {
+            background-color: #FF4B4B !important;
+            color: #FFFFFF !important;
+        }
+        
+        /* 3. Yan Menü (Sidebar) Arka Planı */
         [data-testid="stSidebar"] {
             background-color: #F0F2F6;
         }
+        
+        /* Sitedeki diğer tüm varsayılan mor çizgileri/odaklanma renklerini kırmızı yapar */
+        html {
+            --primary: #FF4B4B !important;
+        }
     </style>
-""", unsafe_allow_html=True)  # 
+""", unsafe_allow_html=True)
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
