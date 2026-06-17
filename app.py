@@ -157,30 +157,7 @@ def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     return buffer
 
 # Uygulama genelinde estetik renkleri tanımlamak için custom CSS injection
-st.markdown("""
-    <style>
-    /* Kitap kartları ve butonlar için özel stil */
-    .stButton>button {
-        border-radius: 12px;
-        border: 2px solid #8A2BE2;
-        background-color: white;
-        color: #8A2BE2;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #8A2BE2;
-        color: white;
-        box-shadow: 0px 4px 10px rgba(138, 43, 226, 0.2);
-    }
-    /* Tamamlanmış ödev butonları için yeşil stil */
-    .teslim-edildi {
-        background-color: #2ECC71 !important;
-        color: white !important;
-        border: none !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
+
 
 # Sayfa Modu Seçimi
 st.sidebar.title("📱 Panel Seçimi")
