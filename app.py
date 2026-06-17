@@ -6,6 +6,35 @@ import pandas as pd
 import requests
 from io import BytesIO
 import urllib.parse  # 🔗 WhatsApp linklerini güvenli şifrelemek için eklendi
+st.set_page_config(
+    page_title="Öğrenci Takip Sistemi",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Arayüzü renklendirmek için özel CSS kodları
+st.markdown("""
+    <style>
+        /* Ana Arka Plan */
+        .stApp {
+            background-color: #FFFFFF;
+        }
+        /* Aktif Sekmeler ve Buton Renkleri */
+        button[data-baseweb="tab"], .stButton>button {
+            color: #31333F !important;
+            border-bottom-color: #FF4B4B !important;
+        }
+        /* Butonun üzerine gelindiğinde veya tıklandığında */
+        .stButton>button:hover {
+            border-color: #FF4B4B !important;
+            color: #FF4B4B !important;
+        }
+        /* Yan Menü Arka Planı */
+        [data-testid="stSidebar"] {
+            background-color: #F0F2F6;
+        }
+    </style>
+""", unsafe_allow_allowed=True)
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
