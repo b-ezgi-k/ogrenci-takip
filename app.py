@@ -34,7 +34,7 @@ st.markdown("""
             background-color: #F0F2F6;
         }
     </style>
-""", unsafe_allow_allowed=True)
+""", unsafe_allow_html=True)  # 
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
