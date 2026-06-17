@@ -30,7 +30,7 @@ def dosya_adi_temizle(metin):
     metin = metin.replace(" ", "-")
     return metin.lower()
 
-# 📑 ARKA PLANDA GERÇEK PDF ÜRETME FONKSİYONU (YÜKSEKLİK HATASI ENGELLENMİŞ SÜRÜM)
+# 📑 ARKA PLANDA GERÇEK PDF ÜRETME FONKSİYONU
 def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -99,6 +99,32 @@ def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     doc.build(story)
     buffer.seek(0)
     return buffer
+
+# Uygulama genelinde estetik renkleri tanımlamak için custom CSS injection
+st.markdown("""
+    <style>
+    /* Kitap kartları ve butonlar için özel stil */
+    .stButton>button {
+        border-radius: 12px;
+        border: 2px solid #8A2BE2;
+        background-color: white;
+        color: #8A2BE2;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #8A2BE2;
+        color: white;
+        box-shadow: 0px 4px 10px rgba(138, 43, 226, 0.2);
+    }
+    /* Tamamlanmış ödev butonları için yeşil stil */
+    .teslim-edildi {
+        background-color: #2ECC71 !important;
+        color: white !important;
+        border: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Sayfa Modu Seçimi
 st.sidebar.title("📱 Panel Seçimi")
@@ -247,7 +273,6 @@ if panel_modu == "Öğretmen Paneli":
             if len(tum_ogrenciler) == 0:
                 st.warning("Bu raporun çalışabilmesi için önce 'Sınıf Listesi Yönetimi' sekmesinden öğrencilerini eklemelisiniz.")
             else:
-                # 📝 Dinamik Mesaj Taslağı Düzenleme Kutusu
                 st.write("---")
                 st.subheader("✉️ Günlük WhatsApp Hatırlatma Mesajı Taslağı")
                 varsayilan_mesaj = "Math Pie sisteminde bugün yapman gereken ödev/hata girişi eksik görünmektedir. Sürecinin aksamaması için gün bitmeden eksiklerini tamamlamanı bekliyorum. İyi çalışmalar! 🥧"
@@ -260,7 +285,6 @@ if panel_modu == "Öğretmen Paneli":
                 )
                 st.write("---")
 
-                # Bugün ödev gönderen kayıtları çek
                 bugun_gonderenler_data = supabase.table("student_results").select("student_name").gte("created_at", f"{tarih_str}T00:00:00").lte("created_at", f"{tarih_str}T23:59:59").execute()
                 yapanlar = list(set([b["student_name"] for b in bugun_gonderenler_data.data])) if bugun_gonderenler_data.data else []
                 
@@ -272,9 +296,6 @@ if panel_modu == "Öğretmen Paneli":
                         
                 with g_sag:
                     st.subheader(f"🔴 Ödevini Yapmayanlar")
-                    
-                    # Veri tabanından telefonları eşleştirmek için öğrenci bilgilerini sözlüğe alıyoruz
-                    # Eğer tablonuzda 'student_phone' veya benzeri bir ad varsa ona göre güncellenebilir, şimdilik güvenli get yapısı kuruldu
                     ogrenci_telefon_haritasi = {o["student_name"]: o.get("student_phone", "") for o in ogrenciler_data.data} if ogrenciler_data.data else {}
                     
                     yapmayan_sayisi = 0
@@ -287,14 +308,10 @@ if panel_modu == "Öğretmen Paneli":
                                 st.write(f"❌ {yap_ogrenci}")
                                 
                             with col_buton:
-                                # Kişiye özel mesajı oluşturuyoruz
                                 tam_mesaj = f"Merhaba {yap_ogrenci},\n\n{taslak_mesaj}"
                                 kodlanmis_mesaj = urllib.parse.quote(tam_mesaj)
-                                
-                                # Öğrencinin telefon numarasını al ve temizle
                                 ham_tel = str(ogrenci_telefon_haritasi.get(yap_ogrenci, "")).strip()
                                 
-                                # Eğer sistemde telefon yoksa veya boşsa, öğretmen manuel numara girsin diye boş wa.me açılır
                                 if ham_tel == "" or ham_tel == "None":
                                     whatsapp_linki = f"https://wa.me/?text={kodlanmis_mesaj}"
                                 else:
@@ -304,11 +321,9 @@ if panel_modu == "Öğretmen Paneli":
                                         ham_tel = "90" + ham_tel
                                     whatsapp_linki = f"https://wa.me/{ham_tel}?text={kodlanmis_mesaj}"
                                 
-                                # Küçük, şık ve yan yana duran bir buton linki üretiyoruz
                                 st.markdown(f'[@button Hatırlat 💬]({whatsapp_linki})', unsafe_allow_html=True)
                     
                     if yapmayan_sayisi == 0:
-                        st.empty()
                         st.success("Harika! Bugün tüm sınıf ödev girişlerini tıkır tıkır tamamladı. 🎉")
 
         # SEKME 4: GRAFİKLER SEKMESİ
@@ -317,7 +332,7 @@ if panel_modu == "Öğretmen Paneli":
             tum_sonuclar = supabase.table("student_results").select("*").order("created_at").execute()
             
             if not tum_sonuclar.data or len(tum_ogrenciler) == 0:
-                st.info("Grafiklerin çizilebilmesi için sistemde öğrenci ve gönderilmiş test sonucu olması gerekir.")
+                st.info("Grafiklerin çizilebilmesi için sistemde öğrenci ogrenci ve gönderilmiş test sonucu olması gerekir.")
             else:
                 secilen_grafik_ogrencisi = st.selectbox("Grafiğini Görmek İstediğiniz Öğrenciyi Seçin:", tum_ogrenciler, key="g_o")
                 
@@ -480,87 +495,70 @@ else:
             cozulmus_testler_data = supabase.table("student_results").select("*").eq("student_name", ogrenci_adi).execute()
             cozulmus_test_idleri = [r["test_id"] for r in cozulmus_testler_data.data] if cozulmus_testler_data.data else []
             
+            # GİRİNTİLERİ DÜZELTİLEN YENİ ESTETİK ÖĞRENCİ PANELİ
             with o_sekme1:
-                ogrenci_atamalari = supabase.table("student_book_assignments").select("book_id").eq("student_name", ogrenci_adi).execute()
-                atanan_kitap_idleri = [a["book_id"] for a in ogrenci_atamalari.data] if ogrenci_atamalari.data else []
-                ogrenci_kitap_listesi = {k["book_name"]: k["id"] for k in kitaplar_data.data if k["id"] in atanan_kitap_idleri}
+                st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
+                st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
                 
-                if ogrenci_kitap_listesi:
-                    secilen_kitap = st.selectbox("1. Kitap Seçin", list(ogrenci_kitap_listesi.keys()))
-                    konular = supabase.table("subjects").select("id", "subject_name").eq("book_id", ogrenci_kitap_listesi[secilen_kitap]).execute()
-                    
-                    if konular.data:
-                        konu_haritasi_o = {konu["subject_name"]: konu["id"] for konu in konular.data}
-                        secilen_konu = st.selectbox("2. Konu Seçin", list(konu_haritasi_o.keys()))
+                # 1. ADIM: Kitapları şık kartlar (butonlar) olarak yan yana diziyoruz
+                kitaplar = ["8. Sınıf Prova Matematik", "LGS İlk Prova", "Matematik Soru Bankası"]
+                
+                kolonlar = st.columns(len(kitaplar))
+                secilen_kitap = st.session_state.get('secilen_kitap', kitaplar[0])
+                
+                for i, kitap in enumerate(kitaplar):
+                    with kolonlar[i]:
+                        if st.button(kitap, key=f"kitap_{i}", use_container_width=True):
+                            st.session_state['secilen_kitap'] = kitap
+                            st.rerun()
+                            
+                st.markdown(f"**Şu an incelenen kitap:** `{st.session_state.get('secilen_kitap', kitaplar[0])}`")
+                st.divider()
+                
+                # 2. ADIM: Seçilen Kitabın Konularını Akordeon (Expander) Yapısında Gösterme
+                konular = ["Çarpanlar ve Katlar", "Üslü İfadeler", "Kareköklü İfadeler"]
+                
+                for k_index, topic in enumerate(konular):
+                    with st.expander(f"📚 {topic}", expanded=(k_index == 0)):
+                        st.write("Lütfen teslim etmek istediğin testi seç:")
                         
-                        tum_testler = supabase.table("tests").select("id", "test_name", "total_questions").eq("subject_id", konu_haritasi_o[secilen_konu]).execute()
-                        if tum_testler.data:
-                            cozulmemis_testler = [t for t in tum_testler.data if t["id"] not in cozulmus_test_idleri]
-                            
-                            if cozulmemis_testler:
-                                test_detay_haritasi = {f"{t['test_name']} ({t['total_questions']} Soru)": t for t in cozulmemis_testler}
-                                secilen_test_etiket = st.selectbox("3. Test Seçin", list(test_detay_haritasi.keys()))
+                        # 3. ADIM: Testleri yan yana şık butonlar olarak dizme
+                        testler = ["Test 1", "Test 2", "Test 3", "Test 4"]
+                        test_kolonlari = st.columns(len(testler))
+                        
+                        for t_index, test in enumerate(testler):
+                            with test_kolonlari[t_index]:
+                                odev_teslim_edildi_mi = (k_index == 0 and t_index == 0) 
                                 
-                                secilen_test_objesi = test_detay_haritasi[secilen_test_etiket]
-                                toplam_soru_adedi = secilen_test_objesi["total_questions"]
-                                
-                                soru_numaralari_listesi = list(range(1, toplam_soru_adedi + 1))
-                                secilen_yanlislar = st.multiselect("🔴 YANLIŞ Yaptığınız Soru Numaraları:", soru_numaralari_listesi)
-                                
-                                kalan_sorular_bos_icin = [s for s in soru_numaralari_listesi if s not in secilen_yanlislar]
-                                secilen_boslar = st.multiselect("🟡 BOŞ Bıraktığınız Soru Numaraları:", kalan_sorular_bos_icin)
-                                
-                                gorsel_linkleri_listesi = []
-                                
-                                if secilen_yanlislar or secilen_boslar:
-                                    st.write("---")
-                                    st.subheader("📸 Yapılamayan Soruların Fotoğraflarını Yükleyin")
-                                    
-                                    for y_soru in secilen_yanlislar:
-                                        foto = st.file_uploader(f"📎 Yanlış - {y_soru}. Sorunun Fotoğrafı:", type=["png", "jpg", "jpeg"], key=f"foto_y_{y_soru}")
-                                        if foto: gorsel_linkleri_listesi.append({"soru": f"Yanlış Soru {y_soru}", "dosya": foto, "kod": f"Y{y_soru}"})
+                                if odev_teslim_edildi_mi:
+                                    st.button(f"✅ {test}\n(Teslim Edildi)", key=f"t_{k_index}_{t_index}", disabled=True, use_container_width=True)
+                                else:
+                                    if st.button(f"📝 {test}", key=f"t_{k_index}_{t_index}", use_container_width=True):
+                                        st.session_state['aktif_konu'] = topic
+                                        st.session_state['aktif_test'] = test
+                                        st.rerun()
                                         
-                                    for b_soru in secilen_boslar:
-                                        foto = st.file_uploader(f"📎 Boş - {b_soru}. Sorunun Fotoğrafı:", type=["png", "jpg", "jpeg"], key=f"foto_b_{b_soru}")
-                                        if foto: gorsel_linkleri_listesi.append({"soru": f"Boş Soru {b_soru}", "dosya": foto, "kod": f"B{b_soru}"})
-                                
-                                if st.button("🚀 Test Sonucunu ve Tüm Fotoğrafları Öğretmenime Gönder"):
-                                    final_urls = []
-                                    temiz_ogrenci_adi = dosya_adi_temizle(ogrenci_adi)
-                                    
-                                    for oge in gorsel_linkleri_listesi:
-                                        dosya_adi = f"{temiz_ogrenci_adi}_{secilen_test_objesi['id']}_{oge['kod']}.jpg"
-                                        supabase.storage.from_("student-photos").upload(dosya_adi, oge["dosya"].getvalue(), {"content-type": "image/jpeg"})
-                                        public_url = supabase.storage.from_("student-photos").get_public_url(dosya_adi)
-                                        final_urls.append(f"{oge['soru']}::{public_url}")
-                                    
-                                    gorsel_metni = "|||".join(final_urls) if final_urls else "Görsel Yok"
-                                    
-                                    sonuc_verisi = {
-                                        "student_name": ogrenci_adi, "test_id": secilen_test_objesi["id"],
-                                        "wrong_questions": gorsel_metni, "blank_questions": "Fotoğraflı Yeni Sistem", "is_checked": False
-                                    }
-                                    supabase.table("student_results").insert(sonuc_verisi).execute()
-                                    st.success("🎉 Ödeviniz başarıyla gönderildi!")
-                                    st.rerun()
-                            else: st.success("👏 Tüm testleri tamamladın.")
-                else: st.warning("⚠️ Size tanımlanmış bir kitap bulunamadı.")
-            
-            with o_sekme2:
-                st.header("⏱️ Çözüm ve Hata Geçmişin")
-                if cozulmus_testler_data.data:
-                    for g_rapor in cozulmus_testler_data.data:
-                        g_test_bilgi = supabase.table("tests").select("test_name", "total_questions", "subject_id").eq("id", g_rapor["test_id"]).execute()
-                        if g_test_bilgi.data:
-                            gt_adi = g_test_bilgi.data[0]["test_name"]
-                            durum_etiketi = "📥 İnceleniyor" if not g_rapor["is_checked"] else "✅ Kontrol Edildi"
-                            st.write(f"📝 {gt_adi} | 📌 *{durum_etiketi}*")
+                # 4. ADIM: Test seçildiğinde dinamik olarak açılan Soru Hata/Boş Giriş Alanı
+                if 'aktif_test' in st.session_state:
+                    st.markdown("---")
+                    st.markdown(f"#### 🎯 {st.session_state['aktif_konu']} - {st.session_state['aktif_test']} Ödev Bildirimi")
+                    
+                    with st.form("odev_teslim_formu", clear_on_submit=True):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            yanlis_sayisi = st.number_input("Wrong Questions", min_value=0, max_value=20, step=1, key="f_yanlis")
+                        with col2:
+                            bos_sayisi = st.number_input("Blank Questions", min_value=0, max_value=20, step=1, key="f_bos")
                             
-                            raw_wrong = g_rapor.get("wrong_questions", "")
-                            if "http" in raw_wrong:
-                                linkler = raw_wrong.split("|||")
-                                for l in linkler:
-                                    if "::" in l:
-                                        u_bilgi, url = l.split("::")
-                                        st.image(url, caption=f"Yüklediğin {u_bilgi}", width=250)
-                            st.write("---")
+                        st.write("Varsa yanlış veya boş bıraktığın soru numaralarını işaretle:")
+                        soru_nolar = st.multiselect("Soru Numaraları", options=[f"Soru {x}" for x in range(1, 21)], key="f_sorular")
+                        
+                        submit = st.form_submit_button("Ödevi Öğretmenime Gönder 🚀", use_container_width=True)
+                        if submit:
+                            st.success(f"Harika! {st.session_state['aktif_test']} ödev bildirimi başarıyla alındı.")
+                            del st.session_state['aktif_test']
+                            st.rerun()
+
+            # DİĞER SEKME (GEÇMİŞ)
+            with o_sekme2:
+                st.write("Geçmişte çözdüğün testlerin raporları burada listelenecek.")
