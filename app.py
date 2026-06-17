@@ -354,15 +354,18 @@ if panel_modu == "Öğretmen Paneli":
                     if yapmayan_sayisi == 0:
                         st.success("Harika! Bugün tüm sınıf ödev girişlerini tıkır tıkır tamamladı. 🎉")
 
-        # SEKME 4: GRAFİKLER SEKMESİ
+       # SEKME 4: GRAFİKLER SEKMESİ (YENİLENEN ALAN)
         with sekme4:
             st.header("📈 Akıllı Grafik Analizleri")
             tum_sonuclar = supabase.table("student_results").select("*").order("created_at").execute()
             
             if not tum_sonuclar.data or len(tum_ogrenciler) == 0:
-                st.info("Grafiklerin çizilebilmesi için sistemde öğrenci ogrenci ve gönderilmiş test sonucu olması gerekir.")
+                st.info("Grafiklerin çizilebilmesi için sistemde öğrenci ve gönderilmiş test sonucu olması gerekir.")
             else:
                 secilen_grafik_ogrencisi = st.selectbox("Grafiğini Görmek İstediğiniz Öğrenciyi Seçin:", tum_ogrenciler, key="g_o")
+                
+                # Grafik Türü Seçimi: Kitap mı Deneme mi?
+                grafik_turu = st.radio("Hangi Gelişim Grafiğini İncelemek İstersiniz?", ["📚 Kitap Bazlı Başarı Analizi", "⏱️ Deneme Sınavları Gelişim Grafiği"], horizontal=True)
                 
                 grafik_listesi = []
                 for r in tum_sonuclar.data:
@@ -379,7 +382,7 @@ if panel_modu == "Öğretmen Paneli":
                                 b_id = k_bilgi.data[0]["book_id"]
                                 
                                 kitap_bilgi = supabase.table("books").select("book_name").eq("id", b_id).execute()
-                                kitap_adi = kitap_bilgi.data[0]["book_name"] if kitap_bilgi.data else "Bilinmeyen Kitap"
+                                kitap_adi = kitap_bilgi.data[0]["book_name"] if kitap_bilgi.data else "Bilinmeyen Kaynak"
                                 
                                 raw_w = r["wrong_questions"]
                                 if "http" in raw_w:
@@ -392,25 +395,69 @@ if panel_modu == "Öğretmen Paneli":
                                 dogru = t_soru - eksik_sayi
                                 yuzde = int((dogru / t_soru) * 100) if t_soru > 0 else 0
                                 
+                                # Basit LGS Net Hesabı (3 yanlış 1 doğruyu götürür mantığı için opsiyonel)
+                                net_sayisi = dogru - (y_sayi / 3) if 'y_sayi' in locals() else dogru
+                                
                                 grafik_listesi.append({
-                                    "Kitap": kitap_adi, "Konu": konu_adi, "Test": t_adi, "Toplam Soru": t_soru,
-                                    "Dogru Soru": dogru, "Başarı Yüzdesi": yuzde, "Kitap - Test Adı": f"{kitap_adi} / {t_adi}"
+                                    "Kitap": kitap_adi, "Konu": konu_adi, "Test_Deneme_Adi": t_adi, "Toplam Soru": t_soru,
+                                    "Dogru Soru": dogru, "Yanlis Soru": y_sayi if 'y_sayi' in locals() else 0, "Net": round(net_sayisi, 2),
+                                    "Başarı Yüzdesi": yuzde, "Tarih": r.get("created_at", "")[:10]
                                 })
                 
                 if len(grafik_listesi) > 0:
                     df_raw = pd.DataFrame(grafik_listesi)
-                    df_grouped = df_raw.groupby(["Kitap", "Konu"]).agg({"Toplam Soru": "sum", "Dogru Soru": "sum"}).reset_index()
-                    df_grouped["Genel Başarı Yüzdesi"] = ((df_grouped["Dogru Soru"] / df_grouped["Toplam Soru"]) * 100).astype(int)
                     
-                    st.write("---")
-                    st.subheader("📚 Kitap Bazlı Genel Konu Başarı Karşılaştırması")
-                    mevcut_konular = df_grouped["Konu"].unique()
-                    secilen_grafik_konusu = st.selectbox("Hangi Konunun Kitap Karşılaştırmasını Görmek İstersiniz?", mevcut_konular)
+                    # ----------------------------------------------------
+                    # MOD 1: KİTAP BAZLI KARŞILAŞTIRMA
+                    # ----------------------------------------------------
+                    if grafik_turu == "📚 Kitap Bazlı Başarı Analizi":
+                        df_grouped = df_raw.groupby(["Kitap", "Konu"]).agg({"Toplam Soru": "sum", "Dogru Soru": "sum"}).reset_index()
+                        df_grouped["Genel Başarı Yüzdesi"] = ((df_grouped["Dogru Soru"] / df_grouped["Toplam Soru"]) * 100).astype(int)
+                        
+                        st.write("---")
+                        st.subheader("📚 Kitapların Konu Bazlı Başarı Karşılaştırması")
+                        mevcut_konular = df_grouped["Konu"].unique()
+                        secilen_grafik_konusu = st.selectbox("Hangi Konunun Kitap Karşılaştırmasını Görmek İstersiniz?", mevcut_konular)
+                        
+                        df_konu = df_grouped[df_grouped["Konu"] == secilen_grafik_konusu]
+                        fig_karsilastirma = px.bar(df_konu, x="Kitap", y="Genel Başarı Yüzdesi", color="Kitap", text="Genel Başarı Yüzdesi", range_y=[0, 105], title=f"'{secilen_grafik_konusu}' Konusundaki Kitap Performansları")
+                        st.plotly_chart(fig_karsilastirma, use_container_width=True)
                     
-                    df_konu = df_grouped[df_grouped["Konu"] == secilen_grafik_konusu]
-                    fig_karsilastirma = px.bar(df_konu, x="Kitap", y="Genel Başarı Yüzdesi", color="Kitap", text="Genel Başarı Yüzdesi", range_y=[0, 105])
-                    st.plotly_chart(fig_karsilastirma, use_container_width=True)
-                else: st.warning("Grafik çizilecek yeterli veri yok.")
+                    # ----------------------------------------------------
+                    # MOD 2: DENEMELERE ÖZGÜ GELİŞİM GRAFİĞİ (ZAMAN ÇİZGİSİ)
+                    # ----------------------------------------------------
+                    else:
+                        st.write("---")
+                        st.subheader("⏱️ Deneme Sınavları Kronolojik Gelişim Takibi")
+                        
+                        # İsminin içinde "Deneme" geçen veya sizin "Müfredat" alanına "Genel Deneme" başlığıyla eklediğiniz kaynakları filtreler
+                        df_deneme = df_raw[df_raw["Kitap"].str.contains("Deneme|deneme|Sınav|Moni", case=False) | df_raw["Test_Deneme_Adi"].str.contains("Deneme|deneme", case=False)]
+                        
+                        if not df_deneme.empty:
+                            # Tarihe göre sıralıyoruz ki çizgi soldan sağa doğru zamanla aksın
+                            df_deneme = df_deneme.sort_values(by="Tarih")
+                            
+                            # Net Gelişim Çizgi Grafiği
+                            fig_deneme_cizgi = px.line(
+                                df_deneme, 
+                                x="Test_Deneme_Adi", 
+                                y="Net", 
+                                text="Net",
+                                markers=True,
+                                title=f"{secilen_grafik_ogrencisi} - Deneme Sınavları Net Gelişim Grafiği",
+                                labels={"Test_Deneme_Adi": "Deneme Sınavı Adı", "Net": "Matematik Neti"}
+                            )
+                            fig_deneme_cizgi.update_traces(line_color='#FF4B4B', marker_size=10, textposition="top center")
+                            st.plotly_chart(fig_deneme_cizgi, use_container_width=True)
+                            
+                            # Detaylı Tablo Raporu
+                            st.write("📋 **Deneme Sınav Sonuçları Tablosu:**")
+                            st.dataframe(df_deneme[["Tarih", "Kitap", "Test_Deneme_Adi", "Toplam Soru", "Dogru Soru", "Yanlis Soru", "Net"]], use_container_width=True)
+                        else:
+                            st.warning("Bu öğrenciye ait henüz 'Deneme' kelimesi içeren bir kaynak veya test kaydı bulunamadı. Deneme grafiklerinin filtrelenmesi için yeni kitap eklerken adına 'Deneme' (Örn: LGS Altın Deneme Seri 1) yazmanız yeterlidir.")
+                            
+                else: 
+                    st.warning("Grafik çizilecek yeterli veri yok.")
 
         # SEKME 5: SINIF VE MÜFREDAT YÖNETİMİ
         with sekme5:
