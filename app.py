@@ -6,16 +6,14 @@ import pandas as pd
 import requests
 from io import BytesIO
 import urllib.parse  # 🔗 WhatsApp linklerini güvenli şifrelemek için eklendi
+
 st.set_page_config(
     page_title="Öğrenci Takip Sistemi",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Arayüzü renklendirmek için özel CSS kodları
-st.markdown("""
-   st.markdown("""
-   # Renk ve tasarım kodlarını korunaklı bir metin haline getiriyoruz
+# Renk ve tasarım kodlarını korunaklı bir metin haline getiriyoruz
 tasarim_kodlari = """
 <style>
     /* Ana Arka Plan */
@@ -60,7 +58,7 @@ tasarim_kodlari = """
 </style>
 """
 
-# Şimdi bu tasarımı güvenli bir şekilde Streamlit'e uyguluyoruz
+# Tasarımı güvenli bir şekilde Streamlit'e uyguluyoruz
 st.markdown(tasarim_kodlari, unsafe_allow_html=True)
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
@@ -155,9 +153,6 @@ def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     doc.build(story)
     buffer.seek(0)
     return buffer
-
-# Uygulama genelinde estetik renkleri tanımlamak için custom CSS injection
-
 
 # Sayfa Modu Seçimi
 st.sidebar.title("📱 Panel Seçimi")
@@ -528,12 +523,10 @@ else:
             cozulmus_testler_data = supabase.table("student_results").select("*").eq("student_name", ogrenci_adi).execute()
             cozulmus_test_idleri = [r["test_id"] for r in cozulmus_testler_data.data] if cozulmus_testler_data.data else []
             
-            # GİRİNTİLERİ DÜZELTİLEN YENİ ESTETİK ÖĞRENCİ PANELİ
             with o_sekme1:
                 st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
                 st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
                 
-                # 1. ADIM: Kitapları şık kartlar (butonlar) olarak yan yana diziyoruz
                 kitaplar = ["8. Sınıf Prova Matematik", "LGS İlk Prova", "Matematik Soru Bankası"]
                 
                 kolonlar = st.columns(len(kitaplar))
@@ -548,14 +541,12 @@ else:
                 st.markdown(f"**Şu an incelenen kitap:** `{st.session_state.get('secilen_kitap', kitaplar[0])}`")
                 st.divider()
                 
-                # 2. ADIM: Seçilen Kitabın Konularını Akordeon (Expander) Yapısında Gösterme
                 konular = ["Çarpanlar ve Katlar", "Üslü İfadeler", "Kareköklü İfadeler"]
                 
                 for k_index, topic in enumerate(konular):
                     with st.expander(f"📚 {topic}", expanded=(k_index == 0)):
                         st.write("Lütfen teslim etmek istediğin testi seç:")
                         
-                        # 3. ADIM: Testleri yan yana şık butonlar olarak dizme
                         testler = ["Test 1", "Test 2", "Test 3", "Test 4"]
                         test_kolonlari = st.columns(len(testler))
                         
@@ -571,7 +562,6 @@ else:
                                         st.session_state['aktif_test'] = test
                                         st.rerun()
                                         
-                # 4. ADIM: Test seçildiğinde dinamik olarak açılan Soru Hata/Boş Giriş Alanı
                 if 'aktif_test' in st.session_state:
                     st.markdown("---")
                     st.markdown(f"#### 🎯 {st.session_state['aktif_konu']} - {st.session_state['aktif_test']} Ödev Bildirimi")
@@ -584,14 +574,8 @@ else:
                             bos_sayisi = st.number_input("Blank Questions", min_value=0, max_value=20, step=1, key="f_bos")
                             
                         st.write("Varsa yanlış veya boş bıraktığın soru numaralarını işaretle:")
-                        soru_nolar = st.multiselect("Soru Numaraları", options=[f"Soru {x}" for x in range(1, 21)], key="f_sorular")
                         
-                        submit = st.form_submit_button("Ödevi Öğretmenime Gönder 🚀", use_container_width=True)
-                        if submit:
-                            st.success(f"Harika! {st.session_state['aktif_test']} ödev bildirimi başarıyla alındı.")
-                            del st.session_state['aktif_test']
-                            st.rerun()
-
-            # DİĞER SEKME (GEÇMİŞ)
-            with o_sekme2:
-                st.write("Geçmişte çözdüğün testlerin raporları burada listelenecek.")
+                        # Formun başarıyla gönderilmesi için gerekli olan buton yapısı eklendi
+                        submitted = st.form_submit_button("Ödevi Gönder 🚀", use_container_width=True)
+                        if submitted:
+                            st.info("Ödev gönderme mantığı buraya entegre edilebilir.")
