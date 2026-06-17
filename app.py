@@ -15,47 +15,53 @@ st.set_page_config(
 # Arayüzü renklendirmek için özel CSS kodları
 st.markdown("""
    st.markdown("""
-    <style>
-        /* 1. Ana Arka Plan */
-        .stApp {
-            background-color: #FFFFFF;
-        }
-        
-        /* 2. Tüm Sekmelerin, Butonların ve Çizgilerin Vurgu Rengi (Kırmızı) */
-        button[data-baseweb="tab"] {
-            color: #31333F !important;
-            border-bottom-color: #FF4B4B !important;
-        }
-        
-        /* Aktif olan, seçili sekmenin altındaki çizgi */
-        div[data-baseweb="tab-highlight-bar"] {
-            background-color: #FF4B4B !important;
-        }
-        
-        /* Butonların kenarlıkları ve yazıları */
-        .stButton>button {
-            color: #FF4B4B !important;
-            border-color: #FF4B4B !important;
-            background-color: transparent !important;
-        }
-        
-        /* Butonun üzerine gelindiğinde */
-        .stButton>button:hover {
-            background-color: #FF4B4B !important;
-            color: #FFFFFF !important;
-        }
-        
-        /* 3. Yan Menü (Sidebar) Arka Planı */
-        [data-testid="stSidebar"] {
-            background-color: #F0F2F6;
-        }
-        
-        /* Sitedeki diğer tüm varsayılan mor çizgileri/odaklanma renklerini kırmızı yapar */
-        html {
-            --primary: #FF4B4B !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
+   # Renk ve tasarım kodlarını korunaklı bir metin haline getiriyoruz
+tasarim_kodlari = """
+<style>
+    /* Ana Arka Plan */
+    .stApp {
+        background-color: #FFFFFF;
+    }
+    
+    /* Tüm Sekmelerin ve Çizgilerin Vurgu Rengi */
+    button[data-baseweb="tab"] {
+        color: #31333F !important;
+        border-bottom-color: #FF4B4B !important;
+    }
+    
+    /* Aktif olan sekmenin altındaki çizgi */
+    div[data-baseweb="tab-highlight-bar"] {
+        background-color: #FF4B4B !important;
+    }
+    
+    /* Buton tasarımı ve yuvarlatılmış köşeler */
+    .stButton>button {
+        color: #FF4B4B !important;
+        border-color: #FF4B4B !important;
+        background-color: transparent !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Butonun üzerine gelindiğinde */
+    .stButton>button:hover {
+        background-color: #FF4B4B !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Yan Menü (Sidebar) Arka Planı */
+    [data-testid="stSidebar"] {
+        background-color: #F0F2F6;
+    }
+    
+    /* Sistemdeki tüm morlukları kırmızıya zorlar */
+    html {
+        --primary: #FF4B4B !important;
+    }
+</style>
+"""
+
+# Şimdi bu tasarımı güvenli bir şekilde Streamlit'e uyguluyoruz
+st.markdown(tasarim_kodlari, unsafe_allow_html=True)
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
