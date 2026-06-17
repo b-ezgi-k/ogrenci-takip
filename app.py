@@ -5,6 +5,7 @@ import plotly.express as px
 import pandas as pd
 import requests
 from io import BytesIO
+import urllib.parse  # 🔗 WhatsApp linklerini güvenli şifrelemek için eklendi
 
 # PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
@@ -32,7 +33,6 @@ def dosya_adi_temizle(metin):
 # 📑 ARKA PLANDA GERÇEK PDF ÜRETME FONKSİYONU (YÜKSEKLİK HATASI ENGELLENMİŞ SÜRÜM)
 def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     buffer = BytesIO()
-    # Kenar boşluklarını biraz daraltıp alanı genişletiyoruz
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     story = []
     
@@ -73,19 +73,15 @@ def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
                 img_data = BytesIO(response.content)
                 img = Image(img_data)
                 
-                # 🧠 AKILLI BOYUTLANDIRMA MANTIĞI
                 orijinal_genislik = img.drawWidth
                 orijinal_yukseklik = img.drawHeight
                 
-                # Maksimum izin verilen sınırları ekiyoruz (Sayfaya tam oturması için)
                 MAKS_GENISLIK = 450
-                MAKS_YUKSEKLIK = 500  # Büyük dikey fotoğrafların taşmasını önleyen kritik sınır!
+                MAKS_YUKSEKLIK = 500  
                 
-                # Önce genişliğe göre oranla küçültelim
                 yeni_genislik = MAKS_GENISLIK
                 yeni_yukseklik = (orijinal_yukseklik * MAKS_GENISLIK) / orijinal_genislik
                 
-                # Eğer boyu hala sayfayı aşıyorsa, bu sefer yüksekliğe göre sabitleyip daraltalım
                 if yeni_yukseklik > MAKS_YUKSEKLIK:
                     yeni_yukseklik = MAKS_YUKSEKLIK
                     yeni_genislik = (orijinal_genislik * MAKS_YUKSEKLIK) / orijinal_yukseklik
@@ -112,6 +108,7 @@ panel_modu = st.sidebar.radio("Sisteme Kim Olarak Giriş Yapıyorsunuz?", ["Öğ
 kitaplar_data = supabase.table("books").select("id", "book_name").execute()
 kitap_id_to_name = {k["id"]: k["book_name"] for k in kitaplar_data.data} if kitaplar_data.data else {}
 
+# 👥 Öğrenci listesini ve tüm ham verileri öğretmen takibi için çekiyoruz
 ogrenciler_data = supabase.table("student_list").select("*").execute()
 tum_ogrenciler = [o["student_name"] for o in ogrenciler_data.data] if ogrenciler_data.data else []
 
@@ -181,7 +178,7 @@ if panel_modu == "Öğretmen Paneli":
             else:
                 st.success("🎉 Harika! İncelenmemiş hiç ödev/test bilgilendirmesi kalmadı.")
                 
-        # SEKME 2: KONU BAZLI HATA KİTAPÇIĞI (HAKİKİ PDF İNDİRME ALANI)
+        # SEKME 2: KONU BAZLI HATA KİTAPÇIĞI
         with sekme2:
             st.header("📚 Konu Bazlı Tarama Kitapçığı")
             st.write("Öğrencinin geçmişte yüklediği tüm yanlış ve boş soruları filtreleyip hakiki bir PDF dosyası olarak indirebilirsiniz.")
@@ -192,10 +189,10 @@ if panel_modu == "Öğretmen Paneli":
                 with c_k2: t_kitap = st.selectbox("2. Kitap Seçin:", list(kitap_id_to_name.values()), key="tarama_k")
                 
                 selected_book_id = [k for k, v in kitap_id_to_name.items() if v == t_kitap][0]
-                konular_db = supabase.table("subjects").select("id", "subject_name").eq("book_id", selected_book_id).execute()
+                konuorlar_db = supabase.table("subjects").select("id", "subject_name").eq("book_id", selected_book_id).execute()
                 
-                if konular_db.data:
-                    konu_haritasi_tarama = {k["subject_name"]: k["id"] for k in konular_db.data}
+                if konuorlar_db.data:
+                    konu_haritasi_tarama = {k["subject_name"]: k["id"] for k in konuorlar_db.data}
                     with c_k3: t_konu = st.selectbox("3. Konu Seçin:", list(konu_haritasi_tarama.keys()), key="tarama_konu")
                     
                     if st.button("🔍 Tarama Verilerini Topla"):
@@ -220,11 +217,9 @@ if panel_modu == "Öğretmen Paneli":
                             if len(gorsel_listesi) > 0:
                                 st.success(f"🎉 Toplam {len(gorsel_listesi)} adet hatalı/boş soru görseli başarıyla toplandı!")
                                 
-                                # Arka planda ReportLab ile PDF'i oluşturuyoruz
                                 temiz_dosya_adi = dosya_adi_temizle(f"{t_ogrenci}-{t_konu}-tarama.pdf")
                                 pdf_data = pdf_olustur(t_ogrenci, t_konu, gorsel_listesi)
                                 
-                                # 📥 GERÇEK INDİRME BUTONU
                                 st.download_button(
                                     label="📥 FASİKÜLÜ PDF OLARAK BİLGİSAYARA İNDİR",
                                     data=pdf_data,
@@ -233,7 +228,6 @@ if panel_modu == "Öğretmen Paneli":
                                     use_container_width=True
                                 )
                                 
-                                # Ekran önizlemesi (İsteğe bağlı kalsın diye aşağıya ekledim)
                                 st.write("---")
                                 st.subheader("👀 Ekran Önizlemesi")
                                 for g in gorsel_listesi:
@@ -244,7 +238,7 @@ if panel_modu == "Öğretmen Paneli":
                         else: st.warning("Bu konuya ait henüz sistemde tanımlı bir test bulunmuyor.")
                 else: st.warning("Bu kitaba ait henüz bir konu bulunmuyor.")
 
-        # SEKME 3: GÜNLÜK ÖDEV TAKİP RAPORU
+        # SEKME 3: GÜNLÜK ÖDEV TAKİP RAPORU & ESNEK WHATSAPP SİSTEMİ
         with sekme3:
             st.header("📅 Günlük Ödev Durum Tablosu")
             secilen_tarih = st.date_input("Hangi Günün Ödev Kontrolünü Görmek İstersiniz?", datetime.today())
@@ -253,17 +247,69 @@ if panel_modu == "Öğretmen Paneli":
             if len(tum_ogrenciler) == 0:
                 st.warning("Bu raporun çalışabilmesi için önce 'Sınıf Listesi Yönetimi' sekmesinden öğrencilerini eklemelisiniz.")
             else:
+                # 📝 Dinamik Mesaj Taslağı Düzenleme Kutusu
+                st.write("---")
+                st.subheader("✉️ Günlük WhatsApp Hatırlatma Mesajı Taslağı")
+                varsayilan_mesaj = "Math Pie sisteminde bugün yapman gereken ödev/hata girişi eksik görünmektedir. Sürecinin aksamaması için gün bitmeden eksiklerini tamamlamanı bekliyorum. İyi çalışmalar! 🥧"
+                
+                taslak_mesaj = st.text_area(
+                    "Mesajınızı özelleştirebilirsiniz (Öğrencinin ismi otomatik olarak en başa eklenecektir):", 
+                    value=varsayilan_mesaj,
+                    height=100,
+                    key="dinamik_taslak_input"
+                )
+                st.write("---")
+
+                # Bugün ödev gönderen kayıtları çek
                 bugun_gonderenler_data = supabase.table("student_results").select("student_name").gte("created_at", f"{tarih_str}T00:00:00").lte("created_at", f"{tarih_str}T23:59:59").execute()
                 yapanlar = list(set([b["student_name"] for b in bugun_gonderenler_data.data])) if bugun_gonderenler_data.data else []
-                yapmayanlar = [ogrenci for ogrenci in tum_ogrenciler if ogrenci not in yapanlar]
                 
                 g_sol, g_sag = st.columns(2)
                 with g_sol:
                     st.subheader(f"🟢 Ödevini Yapanlar ({len(yapanlar)})")
-                    for y_ogrenci in yapanlar: st.write(f"✅ {y_ogrenci}")
+                    for y_ogrenci in yapanlar: 
+                        st.write(f"✅ {y_ogrenci}")
+                        
                 with g_sag:
-                    st.subheader(f"🔴 Ödevini Yapmayanlar ({len(yapmayanlar)})")
-                    for yap_ogrenci in yapmayanlar: st.write(f"❌ {yap_ogrenci}")
+                    st.subheader(f"🔴 Ödevini Yapmayanlar")
+                    
+                    # Veri tabanından telefonları eşleştirmek için öğrenci bilgilerini sözlüğe alıyoruz
+                    # Eğer tablonuzda 'student_phone' veya benzeri bir ad varsa ona göre güncellenebilir, şimdilik güvenli get yapısı kuruldu
+                    ogrenci_telefon_haritasi = {o["student_name"]: o.get("student_phone", "") for o in ogrenciler_data.data} if ogrenciler_data.data else {}
+                    
+                    yapmayan_sayisi = 0
+                    for yap_ogrenci in tum_ogrenciler:
+                        if yap_ogrenci not in yapanlar:
+                            yapmayan_sayisi += 1
+                            col_isim, col_buton = st.columns([2, 1])
+                            
+                            with col_isim:
+                                st.write(f"❌ {yap_ogrenci}")
+                                
+                            with col_buton:
+                                # Kişiye özel mesajı oluşturuyoruz
+                                tam_mesaj = f"Merhaba {yap_ogrenci},\n\n{taslak_mesaj}"
+                                kodlanmis_mesaj = urllib.parse.quote(tam_mesaj)
+                                
+                                # Öğrencinin telefon numarasını al ve temizle
+                                ham_tel = str(ogrenci_telefon_haritasi.get(yap_ogrenci, "")).strip()
+                                
+                                # Eğer sistemde telefon yoksa veya boşsa, öğretmen manuel numara girsin diye boş wa.me açılır
+                                if ham_tel == "" or ham_tel == "None":
+                                    whatsapp_linki = f"https://wa.me/?text={kodlanmis_mesaj}"
+                                else:
+                                    if ham_tel.startswith("0"):
+                                        ham_tel = "90" + ham_tel[1:]
+                                    elif not ham_tel.startswith("90"):
+                                        ham_tel = "90" + ham_tel
+                                    whatsapp_linki = f"https://wa.me/{ham_tel}?text={kodlanmis_mesaj}"
+                                
+                                # Küçük, şık ve yan yana duran bir buton linki üretiyoruz
+                                st.markdown(f'[@button Hatırlat 💬]({whatsapp_linki})', unsafe_allow_html=True)
+                    
+                    if yapmayan_sayisi == 0:
+                        st.empty()
+                        st.success("Harika! Bugün tüm sınıf ödev girişlerini tıkır tıkır tamamladı. 🎉")
 
         # SEKME 4: GRAFİKLER SEKMESİ
         with sekme4:
