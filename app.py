@@ -643,8 +643,6 @@ else:
                             
                         st.write("Varsa yanlış veya boş bıraktığın soru numaralarını işaretle:")
                         
-                        # Formun başarıyla gönderilmesi için gerekli olan buton yapısı eklendi
-                        submitted = st.form_submit_button("Ödevi Gönder 🚀", use_container_width=True)
                         with o_sekme1:
                 st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
                 st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
@@ -658,4 +656,4 @@ else:
                     with kolonlar[idx]:
                         if st.button(k_adi, key=f"btn_k_{idx}"):
                             st.session_state['secilen_kitap'] = k_adi
-                            st.rerun()ir.")
+                            st.rerun()
