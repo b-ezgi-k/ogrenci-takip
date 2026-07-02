@@ -242,12 +242,12 @@ if panel_modu == "Öğretmen Paneli":
                 with c_k1: t_ogrenci = st.selectbox("1. Öğrenci Seçin:", tum_ogrenciler, key="tarama_o")
                 with c_k2: t_kitap = st.selectbox("2. Kitap Seçin:", list(kitap_id_to_name.values()), key="tarama_k")
                 
-                selected_book_id = [k for k, v in kitap_id_to_name.items() if v == t_kitap][0]
-                konuorlar_db = supabase.table("subjects").select("id", "subject_name").eq("book_id", selected_book_id).execute()
-                
-                if konuorlar_db.data:
-                    konu_haritasi_tarama = {k["subject_name"]: k["id"] for k in konuorlar_db.data}
-                    with c_k3: t_konu = st.selectbox("3. Konu Seçin:", list(konu_haritasi_tarama.keys()), key="tarama_konu")
+                kitap_eslesme = [k for k, v in kitap_id_to_name.items() if v == t_kitap]
+if kitap_eslesme:
+    selected_book_id = kitap_eslesme[0]
+else:
+    selected_book_id = None
+    continue
                     
                     if st.button("🔍 Tarama Verilerini Topla"):
                         secilen_konu_id = konu_haritasi_tarama[t_konu]
