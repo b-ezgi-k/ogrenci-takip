@@ -242,15 +242,27 @@ if panel_modu == "Öğretmen Paneli":
                 with c_k1: t_ogrenci = st.selectbox("1. Öğrenci Seçin:", tum_ogrenciler, key="tarama_o")
                 with c_k2: t_kitap = st.selectbox("2. Kitap Seçin:", list(kitap_id_to_name.values()), key="tarama_k")
                 
+                # --- GÜVENLİ KİTAP EŞLEŞTİRME (HİZALAMA DÜZELTİLDİ) ---
                 kitap_eslesme = [k for k, v in kitap_id_to_name.items() if v == t_kitap]
-            if kitap_eslesme:
-               selected_book_id = kitap_eslesme[0]
-               else:
+                if kitap_eslesme:
+                    selected_book_id = kitap_eslesme[0]
+                else:
                     selected_book_id = None
-                    continue
-                    
+
+                # Kitaba ait konuları dinamik filtrelemek için harita çıkarıyoruz
+                konu_haritasi_tarama = {}
+                if selected_book_id:
+                    konular_db = supabase.table("subjects").select("id", "subject_name").eq("book_id", selected_book_id).execute()
+                    if konular_db.data:
+                        konu_haritasi_tarama = {kon["subject_name"]: kon["id"] for kon in konular_db.data}
+
+                with c_k3: 
+                    t_konu = st.selectbox("3. Konu Seçin:", list(konu_haritasi_tarama.keys()) if konu_haritasi_tarama else ["Konu Bulunamadı"], key="tarama_konu")
+                
+                # --- BUTON VE ALTINDAKİ TÜM AKIŞ İÇERİYE ALINDI ---
+                if selected_book_id and t_konu != "Konu Bulunamadı":
                     if st.button("🔍 Tarama Verilerini Topla"):
-                        secilen_konu_id = konu_haritasi_tarama[t_konu]
+                        secilen_konu_id = topic_id = konu_haritasi_tarama[t_konu]
                         testler_db = supabase.table("tests").select("id", "test_name").eq("subject_id", secilen_konu_id).execute()
                         test_idleri = [t["id"] for t in testler_db.data] if testler_db.data else []
                         
@@ -289,8 +301,10 @@ if panel_modu == "Öğretmen Paneli":
                                     st.image(g['url'], width=400)
                             else:
                                 st.warning("Bu konuda öğrenciye ait yüklenmiş herhangi bir soru görseli bulunamadı.")
-                        else: st.warning("Bu konuya ait henüz sistemde tanımlı bir test bulunmuyor.")
-                else: st.warning("Bu kitaba ait henüz bir konu bulunmuyor.")
+                        else: 
+                            st.warning("Bu konuya ait henüz sistemde tanımlı bir test bulunmuyor.")
+                else: 
+                    st.warning("Lütfen geçerli bir kitap ve konu seçildiğinden emin olun.")
 
         # SEKME 3: GÜNLÜK ÖDEV TAKİP RAPORU & ESNEK WHATSAPP SİSTEMİ
         with sekme3:
@@ -631,5 +645,19 @@ else:
                         
                         # Formun başarıyla gönderilmesi için gerekli olan buton yapısı eklendi
                         submitted = st.form_submit_button("Ödevi Gönder 🚀", use_container_width=True)
+                        with o_sekme1:
+                st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
+                st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
+                
+                kitaplar = ["8. Sınıf Prova Matematik", "LGS İlk Prova", "Matematik Soru Bankası"]
+                
+                kolonlar = st.columns(len(kitaplar))
+                secilen_kitap = st.session_state.get('secilen_kitap', kitaplar[0])
+                
+                for idx, k_adi in enumerate(kitaplar):
+                    with kolonlar[idx]:
+                        if st.button(k_adi, key=f"btn_k_{idx}"):
+                            st.session_state['secilen_kitap'] = k_adi
+                            st.rerun()
                         if submitted:
                             st.info("Ödev gönderme mantığı buraya entegre edilebilir.")
