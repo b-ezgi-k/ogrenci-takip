@@ -658,6 +658,4 @@ else:
                     with kolonlar[idx]:
                         if st.button(k_adi, key=f"btn_k_{idx}"):
                             st.session_state['secilen_kitap'] = k_adi
-                            st.rerun()
-                        if submitted:
-                            st.info("Ödev gönderme mantığı buraya entegre edilebilir.")
+                            st.rerun()ir.")
