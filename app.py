@@ -369,40 +369,47 @@ if panel_modu == "Öğretmen Paneli":
                 
                 grafik_listesi = []
                 for r in tum_sonuclar.data:
-                    if r["student_name"] == secilen_grafik_ogrencisi:
+                    if r.get("student_name") == secilen_grafik_ogrencisi:
+                        # Test bilgisini çekiyoruz
                         t_bilgi = supabase.table("tests").select("test_name", "total_questions", "subject_id").eq("id", r["test_id"]).execute()
-                        if t_bilgi.data:
-                            t_adi = t_bilgi.data[0]["test_name"]
-                            t_soru = t_bilgi.data[0]["total_questions"]
-                            s_id = t_bilgi.data[0]["subject_id"]
+                        
+                        # EĞER TEST VERİSİ BULUNAMDIYSA HATA VERMEDEN GEÇ (GÜVENLİK)
+                        if not t_bilgi.data:
+                            continue
                             
-                            k_bilgi = supabase.table("subjects").select("subject_name", "book_id").eq("id", s_id).execute()
-                            if k_bilgi.data:
-                                konu_adi = k_bilgi.data[0]["subject_name"]
-                                b_id = k_bilgi.data[0]["book_id"]
-                                
-                                kitap_bilgi = supabase.table("books").select("book_name").eq("id", b_id).execute()
-                                kitap_adi = kitap_bilgi.data[0]["book_name"] if kitap_bilgi.data else "Bilinmeyen Kaynak"
-                                
-                                raw_w = r["wrong_questions"]
-                                if "http" in raw_w:
-                                    eksik_sayi = len(raw_w.split("|||"))
-                                else:
-                                    y_sayi = len([int(x) for x in raw_w.split(",") if x.strip().isdigit()]) if raw_w else 0
-                                    b_sayi = len([int(x) for x in r["blank_questions"].split(",") if x.strip().isdigit()]) if r["blank_questions"] else 0
-                                    eksik_sayi = y_sayi + b_sayi
-                                    
-                                dogru = t_soru - eksik_sayi
-                                yuzde = int((dogru / t_soru) * 100) if t_soru > 0 else 0
-                                
-                                # Basit LGS Net Hesabı (3 yanlış 1 doğruyu götürür mantığı için opsiyonel)
-                                net_sayisi = dogru - (y_sayi / 3) if 'y_sayi' in locals() else dogru
-                                
-                                grafik_listesi.append({
-                                    "Kitap": kitap_adi, "Konu": konu_adi, "Test_Deneme_Adi": t_adi, "Toplam Soru": t_soru,
-                                    "Dogru Soru": dogru, "Yanlis Soru": y_sayi if 'y_sayi' in locals() else 0, "Net": round(net_sayisi, 2),
-                                    "Başarı Yüzdesi": yuzde, "Tarih": r.get("created_at", "")[:10]
-                                })
+                        t_adi = t_bilgi.data[0]["test_name"]
+                        t_soru = t_bilgi.data[0]["total_questions"]
+                        s_id = t_bilgi.data[0]["subject_id"]
+                        
+                        # Konu bilgisini çekiyoruz
+                        k_bilgi = supabase.table("subjects").select("subject_name", "book_id").eq("id", s_id).execute()
+                        if not k_bilgi.data:
+                            continue
+                            
+                        konu_adi = k_bilgi.data[0]["subject_name"]
+                        b_id = k_bilgi.data[0]["book_id"]
+                        
+                        # Kitap bilgisini çekiyoruz
+                        kitap_bilgi = supabase.table("books").select("book_name").eq("id", b_id).execute()
+                        kitap_adi = kitap_bilgi.data[0]["book_name"] if kitap_bilgi.data else "Bilinmeyen Kaynak"
+                        
+                        raw_w = r.get("wrong_questions", "")
+                        if raw_w and "http" in raw_w:
+                            eksik_sayi = len(raw_w.split("|||"))
+                        else:
+                            y_sayi = len([int(x) for x in raw_w.split(",") if x.strip().isdigit()]) if raw_w else 0
+                            b_sayi = len([int(x) for x in r.get("blank_questions", "").split(",") if x.strip().isdigit()]) if r.get("blank_questions") else 0
+                            eksik_sayi = y_sayi + b_sayi
+                            
+                        dogru = t_soru - eksik_sayi
+                        yuzde = int((dogru / t_soru) * 100) if t_soru > 0 else 0
+                        net_sayisi = dogru - (y_sayi / 3) if 'y_sayi' in locals() else dogru
+                        
+                        grafik_listesi.append({
+                            "Kitap": kitap_adi, "Konu": konu_adi, "Test_Deneme_Adi": t_adi, "Toplam Soru": t_soru,
+                            "Dogru Soru": dogru, "Yanlis Soru": y_sayi if 'y_sayi' in locals() else 0, "Net": round(net_sayisi, 2),
+                            "Başarı Yüzdesi": yuzde, "Tarih": r.get("created_at", "")[:10]
+                        })
                 
                 if len(grafik_listesi) > 0:
                     df_raw = pd.DataFrame(grafik_listesi)
