@@ -243,11 +243,11 @@ if panel_modu == "Öğretmen Paneli":
                 with c_k2: t_kitap = st.selectbox("2. Kitap Seçin:", list(kitap_id_to_name.values()), key="tarama_k")
                 
                 kitap_eslesme = [k for k, v in kitap_id_to_name.items() if v == t_kitap]
-if kitap_eslesme:
-    selected_book_id = kitap_eslesme[0]
-else:
-    selected_book_id = None
-    continue
+            if kitap_eslesme:
+               selected_book_id = kitap_eslesme[0]
+               else:
+                    selected_book_id = None
+                    continue
                     
                     if st.button("🔍 Tarama Verilerini Topla"):
                         secilen_konu_id = konu_haritasi_tarama[t_konu]
