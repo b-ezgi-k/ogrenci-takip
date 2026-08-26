@@ -159,8 +159,16 @@ st.sidebar.title("📱 Panel Seçimi")
 panel_modu = st.sidebar.radio("Sisteme Kim Olarak Giriş Yapıyorsunuz?", ["Öğretmen Paneli", "Öğrenci Girişi"])
 
 # Ortak Veri Çekme İşlemleri
-kitaplar_data = supabase.table("books").select("id, book_name").execute()
-kitap_id_to_name = {k["id"]: k["book_name"] for k in kitaplar_data.data} if kitaplar_data.data else {}
+@st.cache_data(ttl=60)  # Verileri 60 saniye önbellekte tutarak sunucuyu yormaz
+def kitaplari_getir():
+    try:
+        res = supabase.table("books").select("id, book_name").execute()
+        return res.data if res.data else []
+    except Exception as e:
+        st.error("⚠️ Veritabanına bağlanılamadı. Supabase projenizin aktif olduğunu kontrol edin.")
+        return []
+
+kitaplar_data = kitaplari_getir()
 
 # 👥 Öğrenci listesini ve tüm ham verileri öğretmen takibi için çekiyoruz
 ogrenciler_data = supabase.table("student_list").select("*").execute()
