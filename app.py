@@ -159,7 +159,7 @@ st.sidebar.title("📱 Panel Seçimi")
 panel_modu = st.sidebar.radio("Sisteme Kim Olarak Giriş Yapıyorsunuz?", ["Öğretmen Paneli", "Öğrenci Girişi"])
 
 # Ortak Veri Çekme İşlemleri
-kitaplar_data = supabase.table("books").select("id", "book_name").execute()
+kitaplar_data = supabase.table("books").select("id, book_name").execute()
 kitap_id_to_name = {k["id"]: k["book_name"] for k in kitaplar_data.data} if kitaplar_data.data else {}
 
 # 👥 Öğrenci listesini ve tüm ham verileri öğretmen takibi için çekiyoruz
