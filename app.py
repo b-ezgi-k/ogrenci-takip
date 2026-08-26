@@ -636,10 +636,23 @@ else:
                     
                     with st.form("odev_teslim_formu", clear_on_submit=True):
                         col1, col2 = st.columns(2)
-                        with col1:
-                          # ÖĞRENCİ PANELİ: SEKMELERİN TANIMLANMASI VE HİZALANMASI
+                        # ÖĞRENCİ PANELİ: SEKMELERİN TANIMLANMASI VE HİZALANMASI
         o_sekme1, o_sekme2 = st.tabs(["📝 Ödev Bildirimi", "📊 Başarı Analizi"])
 
+        with o_sekme1:
+            st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
+            st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
+            
+            kitaplar = ["8. Sınıf Prova Matematik", "LGS İlk Prova", "Matematik Soru Bankası"]
+            
+            kolonlar = st.columns(len(kitaplar))
+            secilen_kitap = st.session_state.get('secilen_kitap', kitaplar[0])
+            
+            for idx, k_adi in enumerate(kitaplar):
+                with kolonlar[idx]:
+                    if st.button(k_adi, key=f"btn_k_{idx}"):
+                        st.session_state['secilen_kitap'] = k_adi
+                        st.rerun()
         with o_sekme1:
             st.markdown("<h3 style='color: #8A2BE2;'>📝 Ödev Bildirim Paneli</h3>", unsafe_allow_html=True)
             st.write("Raporlamak istediğin kitabı seçerek başlayabilirsin:")
