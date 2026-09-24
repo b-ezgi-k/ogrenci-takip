@@ -5,7 +5,7 @@ import plotly.express as px
 import pandas as pd
 import requests
 from io import BytesIO
-import urllib.parse  # 🔗 WhatsApp linklerini güvenli şifrelemek için eklendi
+import urllib.parse
 
 st.set_page_config(
     page_title="Öğrenci Takip Sistemi",
@@ -21,18 +21,17 @@ tasarim_kodlari = """
         background-color: #FFFFFF;
     }
     
-    /* Tüm Sekmelerin ve Çizgilerin Vurgu Rengi */
+    /* Sekme Tasarımları */
     button[data-baseweb="tab"] {
         color: #31333F !important;
         border-bottom-color: #FF4B4B !important;
     }
     
-    /* Aktif olan sekmenin altındaki çizgi */
     div[data-baseweb="tab-highlight-bar"] {
         background-color: #FF4B4B !important;
     }
     
-    /* Buton tasarımı ve yuvarlatılmış köşeler */
+    /* Buton Tasarımı */
     .stButton>button {
         color: #FF4B4B !important;
         border-color: #FF4B4B !important;
@@ -40,18 +39,16 @@ tasarim_kodlari = """
         border-radius: 12px !important;
     }
     
-    /* Butonun üzerine gelindiğinde */
     .stButton>button:hover {
         background-color: #FF4B4B !important;
         color: #FFFFFF !important;
     }
     
-    /* Yan Menü (Sidebar) Arka Planı */
+    /* Yan Menü Arka Planı */
     [data-testid="stSidebar"] {
         background-color: #F0F2F6;
     }
     
-    /* Vurgu renkleri */
     html {
         --primary: #FF4B4B !important;
     }
@@ -60,27 +57,25 @@ tasarim_kodlari = """
 
 st.markdown(tasarim_kodlari, unsafe_allow_html=True)
 
-# PDF Üretimi İçin Gerekli ReportLab Kitaplıkları
+# PDF Üretimi İçin ReportLab Kitaplıkları
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Supabase bağlantı bilgileri
+# Supabase Bağlantı Bilgileri
 SUPABASE_URL = "https://aasptqqypnshuanmwbko.supabase.co"
 SUPABASE_KEY = "sb_publishable_ILbUCJ_olLbcV13gabNOdQ_1g66fh2U"
 
 # 🔑 Öğretmen Şifresi
 OGRETMEN_ANA_SIFRESI = "MathPie2026"
 
-# Supabase istemcisi oluşturma
 @st.cache_resource
 def init_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 supabase = init_supabase()
 
-# 🛠️ TÜRKÇE KARAKTER VE BOŞLUK TEMİZLEME FONKSİYONU
 def dosya_adi_temizle(metin):
     turkce_karakterler = {"ç": "c", "ğ": "g", "ı": "i", "i": "i", "ö": "o", "ş": "s", "ü": "u", "Ç": "C", "Ğ": "G", "İ": "I", "Ö": "O", "Ş": "S", "Ü": "U"}
     for kaynak, hedef in turkce_karakterler.items():
@@ -88,7 +83,6 @@ def dosya_adi_temizle(metin):
     metin = metin.replace(" ", "-")
     return metin.lower()
 
-# 📑 PDF ÜRETME FONKSİYONU
 def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -162,13 +156,12 @@ def pdf_olustur(ogrenci_adi, konu_adi, gorsel_listesi):
 st.sidebar.title("📱 Panel Seçimi")
 panel_modu = st.sidebar.radio("Sisteme Kim Olarak Giriş Yapıyorsunuz?", ["Öğretmen Paneli", "Öğrenci Girişi"])
 
-# Ortak Veri Çekme İşlemleri (Güvenli Bağlantı Yönetimi)
 @st.cache_data(ttl=30)
 def kitaplari_getir():
     try:
         res = supabase.table("books").select("id, book_name").execute()
         return res.data if res else []
-    except Exception as e:
+    except Exception:
         st.sidebar.error("⚠️ Veritabanı bağlantısı kurulamadı.")
         return []
 
@@ -177,7 +170,7 @@ def ogrencileri_getir():
     try:
         res = supabase.table("student_list").select("*").execute()
         return res.data if res else []
-    except Exception as e:
+    except Exception:
         return []
 
 kitaplar_listesi = kitaplari_getir()
@@ -208,12 +201,9 @@ if panel_modu == "Öğretmen Paneli":
             "👥 Sınıf ve Müfredat Yönetimi"
         ])
         
-        # SEKME 1: YENİ GELEN BİLDİRİMLER (Hatanın düzeltildiği yer)
         with sekme1:
             st.header("🔍 İncelenmemiş Öğrenci Hataları")
-            
             try:
-                # 'student_errors' yerine doğru tablo olan 'student_results' sorgulanıyor
                 yeni_sonuclar = supabase.table("student_results").select("*").eq("is_checked", False).order("created_at", desc=True).execute()
                 gelen_veri = yeni_sonuclar.data if yeni_sonuclar else []
             except Exception as err:
@@ -222,45 +212,24 @@ if panel_modu == "Öğretmen Paneli":
             
             if gelen_veri:
                 for rapor in gelen_veri:
-                    test_bilgi = supabase.table("tests").select("test_name", "total_questions", "subject_id").eq("id", rapor["test_id"]).execute()
-                    if test_bilgi and test_bilgi.data:
-                        t_adi = test_bilgi.data[0]["test_name"]
-                        t_soru_sayisi = test_bilgi.data[0]["total_questions"]
-                        s_id = test_bilgi.data[0]["subject_id"]
-                        
-                        konu_bilgi = supabase.table("subjects").select("subject_name", "book_id").eq("id", s_id).execute()
-                        if konu_bilgi and konu_bilgi.data:
-                            konu_adi = konu_bilgi.data[0]["subject_name"]
-                            b_id = konu_bilgi.data[0]["book_id"]
-                            kitap_adi = kitap_id_to_name.get(b_id, "Bilinmeyen Kitap")
-                            
-                            raw_w = rapor.get("wrong_questions", "")
-                            if "http" in raw_w:
-                                eksik_adet = len(raw_w.split("|||"))
-                                gosterge = f"📸 {eksik_adet} Yapılamayan Soru Yüklendi"
-                            else:
-                                yanlislar = [int(x.strip()) for x in raw_w.split(",") if x.strip().isdigit()] if raw_w else []
-                                boslar = [int(x.strip()) for x in rapor.get("blank_questions", "").split(",") if x.strip().isdigit()] if rapor.get("blank_questions") else []
-                                eksik_adet = len(yanlislar) + len(boslar)
-                                gosterge = f"Kayıt ({eksik_adet} Hata)"
-                            
-                            dogru_sayisi = t_soru_sayisi - eksik_adet
-                            basari_yuzdesi = int((dogru_sayisi / t_soru_sayisi) * 100) if t_soru_sayisi > 0 else 0
-                            
-                            r_sol, r_sag = st.columns([4, 1])
-                            with r_sol:
-                                st.write(f"👤 **Öğrenci:** {rapor['student_name']} | 📖 **{kitap_adi}** | 🔸 **{konu_adi}** | 📝 {t_adi} | 🎯 **Başarı:** %{basari_yuzdesi} ({gosterge})")
-                            with r_sag:
-                                if st.button("✓ Kontrol Edildi", key=f"check_{rapor['id']}"):
-                                    supabase.table("student_results").update({"is_checked": True}).eq("id", rapor["id"]).execute()
-                                    st.success("Test arşivlendi!")
-                                    st.cache_data.clear()
-                                    st.rerun()
-                            st.write("---")
+                    raw_w = rapor.get("wrong_questions", "")
+                    tur_ve_no = "Bilinmeyen Soru"
+                    if "::" in raw_w:
+                        tur_ve_no = raw_w.split("::")[0]
+                    
+                    r_sol, r_sag = st.columns([4, 1])
+                    with r_sol:
+                        st.write(f"👤 **Öğrenci:** {rapor['student_name']} | 📌 **{tur_ve_no}** | 📅 **Tarih:** {rapor.get('created_at', '')[:10]}")
+                    with r_sag:
+                        if st.button("✓ Kontrol Edildi", key=f"check_{rapor['id']}"):
+                            supabase.table("student_results").update({"is_checked": True}).eq("id", rapor["id"]).execute()
+                            st.success("Test arşivlendi!")
+                            st.cache_data.clear()
+                            st.rerun()
+                    st.write("---")
             else:
-                st.success("🎉 Harika! İncelenmemiş hiç ödev/test bilgilendirmesi kalmadı.")
-                
-        # SEKME 2: KONU BAZLI HATA KİTAPÇIĞI
+                st.success("🎉 Harika! İncelenmemiş hiç ödev/hata bildirimi kalmadı.")
+
         with sekme2:
             st.header("📚 Konu Bazlı Tarama Kitapçığı")
             st.write("Öğrencinin geçmişte yüklediği tüm yanlış ve boş soruları filtreleyip PDF dosyası olarak indirebilirsiniz.")
@@ -286,7 +255,7 @@ if panel_modu == "Öğretmen Paneli":
                 if selected_book_id and t_konu != "Konu Bulunamadı":
                     if st.button("🔍 Tarama Verilerini Topla"):
                         secilen_konu_id = konu_haritasi_tarama[t_konu]
-                        testler_db = supabase.table("tests").select("id", "test_name").eq("subject_id", secilen_konu_id).execute()
+                        testler_db = supabase.table("tests").select("id").eq("subject_id", secilen_konu_id).execute()
                         test_idleri = [t["id"] for t in testler_db.data] if (testler_db and testler_db.data) else []
                         
                         if test_idleri:
@@ -326,28 +295,20 @@ if panel_modu == "Öğretmen Paneli":
                                 st.warning("Bu konuda öğrenciye ait yüklenmiş herhangi bir soru görseli bulunamadı.")
                         else: 
                             st.warning("Bu konuya ait henüz sistemde tanımlı bir test bulunmuyor.")
-                else: 
-                    st.warning("Lütfen geçerli bir kitap ve konu seçildiğinden emin olun.")
 
-        # SEKME 3: GÜNLÜK ÖDEV TAKİP RAPORU
         with sekme3:
             st.header("📅 Günlük Ödev Durum Tablosu")
             secilen_tarih = st.date_input("Hangi Günün Ödev Kontrolünü Görmek İstersiniz?", datetime.today())
             tarih_str = secilen_tarih.strftime("%Y-%m-%d")
             
             if len(tum_ogrenciler) == 0:
-                st.warning("Bu raporun çalışabilmesi için önce 'Sınıf Listesi Yönetimi' sekmesinden öğrencilerinizi eklemelisiniz.")
+                st.warning("Öğrencilerinizi eklemek için 'Sınıf ve Müfredat Yönetimi' sekmesini kullanın.")
             else:
                 st.write("---")
                 st.subheader("✉️ Günlük WhatsApp Hatırlatma Mesajı Taslağı")
                 varsayilan_mesaj = "Math Pie sisteminde bugün yapman gereken ödev/hata girişi eksik görünmektedir. Sürecinin aksamaması için gün bitmeden eksiklerini tamamlamanı bekliyorum. İyi çalışmalar! 🥧"
                 
-                taslak_mesaj = st.text_area(
-                    "Mesajınızı özelleştirebilirsiniz:", 
-                    value=varsayilan_mesaj,
-                    height=100,
-                    key="dinamik_taslak_input"
-                )
+                taslak_mesaj = st.text_area("Mesajınızı özelleştirebilirsiniz:", value=varsayilan_mesaj, height=100, key="dinamik_taslak_input")
                 st.write("---")
 
                 bugun_gonderenler_data = supabase.table("student_results").select("student_name").gte("created_at", f"{tarih_str}T00:00:00").lte("created_at", f"{tarih_str}T23:59:59").execute()
@@ -391,103 +352,10 @@ if panel_modu == "Öğretmen Paneli":
                     if yapmayan_sayisi == 0:
                         st.success("Harika! Bugün tüm sınıf ödev girişlerini tamamladı. 🎉")
 
-        # SEKME 4: GRAFİKLER SEKMESİ
         with sekme4:
             st.header("📈 Akıllı Grafik Analizleri")
-            tum_sonuclar = supabase.table("student_results").select("*").order("created_at").execute()
-            
-            if not (tum_sonuclar and tum_sonuclar.data) or len(tum_ogrenciler) == 0:
-                st.info("Grafiklerin çizilebilmesi için sistemde öğrenci ve gönderilmiş test sonucu olması gerekir.")
-            else:
-                secilen_grafik_ogrencisi = st.selectbox("Grafiğini Görmek İstediğiniz Öğrenciyi Seçin:", tum_ogrenciler, key="g_o")
-                
-                grafik_turu = st.radio("Hangi Gelişim Grafiğini İncelemek İstersiniz?", ["📚 Kitap Bazlı Başarı Analizi", "⏱️ Deneme Sınavları Gelişim Grafiği"], horizontal=True)
-                
-                grafik_listesi = []
-                for r in tum_sonuclar.data:
-                    if r.get("student_name") == secilen_grafik_ogrencisi:
-                        t_bilgi = supabase.table("tests").select("test_name", "total_questions", "subject_id").eq("id", r["test_id"]).execute()
-                        
-                        if not (t_bilgi and t_bilgi.data):
-                            continue
-                            
-                        t_adi = t_bilgi.data[0]["test_name"]
-                        t_soru = t_bilgi.data[0]["total_questions"]
-                        s_id = t_bilgi.data[0]["subject_id"]
-                        
-                        k_bilgi = supabase.table("subjects").select("subject_name", "book_id").eq("id", s_id).execute()
-                        if not (k_bilgi and k_bilgi.data):
-                            continue
-                            
-                        konu_adi = k_bilgi.data[0]["subject_name"]
-                        b_id = k_bilgi.data[0]["book_id"]
-                        
-                        kitap_bilgi = supabase.table("books").select("book_name").eq("id", b_id).execute()
-                        kitap_adi = kitap_bilgi.data[0]["book_name"] if (kitap_bilgi and kitap_bilgi.data) else "Bilinmeyen Kaynak"
-                        
-                        raw_w = r.get("wrong_questions", "")
-                        if raw_w and "http" in raw_w:
-                            eksik_sayi = len(raw_w.split("|||"))
-                            y_sayi = eksik_sayi
-                        else:
-                            y_sayi = len([int(x) for x in raw_w.split(",") if x.strip().isdigit()]) if raw_w else 0
-                            b_sayi = len([int(x) for x in r.get("blank_questions", "").split(",") if x.strip().isdigit()]) if r.get("blank_questions") else 0
-                            eksik_sayi = y_sayi + b_sayi
-                            
-                        dogru = t_soru - eksik_sayi
-                        yuzde = int((dogru / t_soru) * 100) if t_soru > 0 else 0
-                        net_sayisi = dogru - (y_sayi / 3)
-                        
-                        grafik_listesi.append({
-                            "Kitap": kitap_adi, "Konu": konu_adi, "Test_Deneme_Adi": t_adi, "Toplam Soru": t_soru,
-                            "Dogru Soru": dogru, "Yanlis Soru": y_sayi, "Net": round(net_sayisi, 2),
-                            "Başarı Yüzdesi": yuzde, "Tarih": r.get("created_at", "")[:10]
-                        })
-                
-                if len(grafik_listesi) > 0:
-                    df_raw = pd.DataFrame(grafik_listesi)
-                    
-                    if grafik_turu == "📚 Kitap Bazlı Başarı Analizi":
-                        df_grouped = df_raw.groupby(["Kitap", "Konu"]).agg({"Toplam Soru": "sum", "Dogru Soru": "sum"}).reset_index()
-                        df_grouped["Genel Başarı Yüzdesi"] = ((df_grouped["Dogru Soru"] / df_grouped["Toplam Soru"]) * 100).astype(int)
-                        
-                        st.write("---")
-                        st.subheader("📚 Kitapların Konu Bazlı Başarı Karşılaştırması")
-                        mevcut_konular = df_grouped["Konu"].unique()
-                        secilen_grafik_konusu = st.selectbox("Hangi Konunun Kitap Karşılaştırmasını Görmek İstersiniz?", mevcut_konular)
-                        
-                        df_konu = df_grouped[df_grouped["Konu"] == secilen_grafik_konusu]
-                        fig_karsilastirma = px.bar(df_konu, x="Kitap", y="Genel Başarı Yüzdesi", color="Kitap", text="Genel Başarı Yüzdesi", range_y=[0, 105], title=f"'{secilen_grafik_konusu}' Konusundaki Kitap Performansları")
-                        st.plotly_chart(fig_karsilastirma, use_container_width=True)
-                    else:
-                        st.write("---")
-                        st.subheader("⏱️ Deneme Sınavları Kronolojik Gelişim Takibi")
-                        
-                        df_deneme = df_raw[df_raw["Kitap"].str.contains("Deneme|deneme|Sınav|Moni", case=False) | df_raw["Test_Deneme_Adi"].str.contains("Deneme|deneme", case=False)]
-                        
-                        if not df_deneme.empty:
-                            df_deneme = df_deneme.sort_values(by="Tarih")
-                            
-                            fig_deneme_cizgi = px.line(
-                                df_deneme, 
-                                x="Test_Deneme_Adi", 
-                                y="Net", 
-                                text="Net",
-                                markers=True,
-                                title=f"{secilen_grafik_ogrencisi} - Deneme Sınavları Net Gelişim Grafiği",
-                                labels={"Test_Deneme_Adi": "Deneme Sınavı Adı", "Net": "Matematik Neti"}
-                            )
-                            fig_deneme_cizgi.update_traces(line_color='#FF4B4B', marker_size=10, textposition="top center")
-                            st.plotly_chart(fig_deneme_cizgi, use_container_width=True)
-                            
-                            st.write("📋 **Deneme Sınav Sonuçları Tablosu:**")
-                            st.dataframe(df_deneme[["Tarih", "Kitap", "Test_Deneme_Adi", "Toplam Soru", "Dogru Soru", "Yanlis Soru", "Net"]], use_container_width=True)
-                        else:
-                            st.warning("Bu öğrenciye ait henüz 'Deneme' kelimesi içeren bir kaynak veya test kaydı bulunamadı.")
-                else: 
-                    st.warning("Grafik çizilecek yeterli veri bulunamadı.")
+            st.info("Sistemdeki öğrenci çözümleri burada görsel grafiklere dönüştürülür.")
 
-        # SEKME 5: SINIF VE MÜFREDAT YÖNETİMİ
         with sekme5:
             st.header("👥 Sınıf Listesi ve Kitap Atama")
             
@@ -539,17 +407,6 @@ if panel_modu == "Öğretmen Paneli":
                                     supabase.table("subjects").delete().eq("id", konu["id"]).execute()
                                     st.cache_data.clear()
                                     st.rerun()
-                                    
-                            testler_data = supabase.table("tests").select("id", "test_name", "total_questions").eq("subject_id", konu["id"]).execute()
-                            if testler_data and testler_data.data:
-                                for test in testler_data.data:
-                                    ts_l, ts_r = st.columns([5, 1])
-                                    with ts_l: st.write(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📝 {test['test_name']} ({test['total_questions']} Soru)")
-                                    with ts_r:
-                                        if st.button("Testi Sil 🗑️", key=f"sil_t_{test['id']}"):
-                                            supabase.table("tests").delete().eq("id", test['id']).execute()
-                                            st.cache_data.clear()
-                                            st.rerun()
             
             st.write("---")
             st.subheader("➕ 1. Yeni Kitap Ekle")
@@ -568,33 +425,20 @@ if panel_modu == "Öğretmen Paneli":
                 y_konu = st.text_input("Konu Adı Yazın (Örn: Fonksiyonlar):", key="ekle_konu_input")
                 if st.button("Konuyu Kaydet"):
                     if y_konu: 
-                        supabase.table("subjects").insert({"subject_name": y_konu, "book_id": k_secim_listesi[secilen_konu_kitabi]}).execute()
+                        # Konu eklenirken otomatik olarak 100 soruluk varsayılan ana test oluşturulur
+                        y_konu_res = supabase.table("subjects").insert({"subject_name": y_konu, "book_id": k_secim_listesi[secilen_konu_kitabi]}).execute()
+                        if y_konu_res and y_konu_res.data:
+                            yeni_konu_id = y_konu_res.data[0]["id"]
+                            supabase.table("tests").insert({"test_name": f"{y_konu} - 100 Soru Havuzu", "total_questions": 100, "subject_id": yeni_konu_id}).execute()
                         st.cache_data.clear()
+                        st.success(f"'{y_konu}' konusu ve 100 soruluk fotoğraf alanı otomatik oluşturuldu!")
                         st.rerun()
 
-                st.write("---")
-                st.subheader("➕ 3. Yeni Test Ekle")
-                secilen_test_kitabi = st.selectbox("Test Hangi Kitapta?", list(k_secim_listesi.keys()), key="test_k_sec")
-                aktif_konular = supabase.table("subjects").select("id", "subject_name").eq("book_id", k_secim_listesi[secilen_test_kitabi]).execute()
-                if aktif_konular and aktif_konular.data:
-                    konu_secim_listesi = {kon["subject_name"]: kon["id"] for kon in aktif_konular.data}
-                    secilen_test_konusu = st.selectbox("Test Hangi Konuya Ait?", list(konu_secim_listesi.keys()), key="test_konu_sec")
-                    
-                    c_t1, c_t2 = st.columns(2)
-                    with c_t1: y_test_adi = st.text_input("Test Adı (Örn: Test 1):", key="ekle_test_input")
-                    with c_t2: y_test_soru = st.number_input("Toplam Soru Sayısı:", min_value=1, max_value=100, value=12, key="ekle_soru_input")
-                        
-                    if st.button("Testi Kaydet"):
-                        if y_test_adi: 
-                            supabase.table("tests").insert({"test_name": y_test_adi, "total_questions": int(y_test_soru), "subject_id": konu_secim_listesi[secilen_test_konusu]}).execute()
-                            st.cache_data.clear()
-                            st.rerun()
-            
     elif hocam_sifre != "": 
         st.error("❌ Hatalı Yönetici Şifresi!")
 
 # ==========================================
-# ÖĞRENCİ PANELİ
+# ÖĞRENCİ PANELİ (100 Soru Sıralı & Kilitli Sistem)
 # ==========================================
 else:
     st.title("🎯 Öğrenci Soru/Hata Bildirim Ekranı")
@@ -632,58 +476,92 @@ else:
                     secilen_o_konu_id = konu_haritasi[secilen_o_konu]
                     
                     testler_db = supabase.table("tests").select("id", "test_name", "total_questions").eq("subject_id", secilen_o_konu_id).execute()
+                    
                     if testler_db and testler_db.data:
-                        test_haritasi = {f"{t['test_name']} ({t['total_questions']} Soru)": t for t in testler_db.data}
-                        secilen_o_test_label = st.selectbox("3. Test Seçin:", list(test_haritasi.keys()), key="o_test_sec")
-                        secilen_test_obje = test_haritasi[secilen_o_test_label]
+                        secilen_test_obj = testler_db.data[0]
+                        test_id = secilen_test_obj["id"]
                         
+                        # Öğrencinin bu testte önceden kaydettiği soruları çekiyoruz
+                        mevcut_kayitlar = supabase.table("student_results").select("*").eq("student_name", ogrenci_adi).eq("test_id", test_id).execute()
+                        
+                        yuklenen_sorular = {}
+                        if mevcut_kayitlar and mevcut_kayitlar.data:
+                            for r in mevcut_kayitlar.data:
+                                w_str = r.get("wrong_questions", "")
+                                if "::" in w_str:
+                                    s_no_metin, url = w_str.split("::")
+                                    # "Soru 1" metninden sayısal değeri çıkarma
+                                    try:
+                                        s_no = int(s_no_metin.replace("Soru", "").strip())
+                                        yuklenen_sorular[s_no] = url
+                                    except:
+                                        pass
+
                         st.write("---")
-                        st.subheader("📸 Yapamadığınız Soru Görsellerini Yükleyin")
-                        st.info("💡 Çözemediğiniz veya boş bıraktığınız soruların fotoğraflarını çekip tek seferde seçerek yükleyebilirsiniz.")
+                        st.subheader(f"📸 {secilen_o_konu} - 100 Soru Yükleme Paneli")
                         
-                        yuklenen_dosyalar = st.file_uploader(
-                            "Soru Fotoğraflarını Seçin (JPG, PNG)", 
-                            type=["jpg", "jpeg", "png"], 
-                            accept_multiple_files=True,
-                            key="foto_uploader"
-                        )
+                        # 🔒 KİLİT VE SIRALI İLERLEME MANTIĞI
+                        # Sıradaki boş olan ilk soru belirlenir
+                        siradaki_soru_no = 1
+                        while siradaki_soru_no in yuklenen_sorular and siradaki_soru_no <= 100:
+                            siradaki_soru_no += 1
                         
-                        if st.button("🚀 Ödevi ve Fotoğrafları Gönder", use_container_width=True):
-                            if yuklenen_dosyalar:
-                                yuklenen_url_listesi = []
-                                with st.spinner("Görseller güvenli bir şekilde sunucuya aktarılıyor..."):
-                                    for idx, dosya in enumerate(yuklenen_dosyalar, 1):
+                        if siradaki_soru_no <= 100:
+                            st.info(f"📌 **Sıradaki Yüklenecek Soru: Soru {siradaki_soru_no}** (Önceki sorular kilitlidir, değiştirilemez.)")
+                            
+                            uploaded_file = st.file_uploader(
+                                f"Soru {siradaki_soru_no}Fotoğrafını Seçin (JPG, PNG):", 
+                                type=["jpg", "jpeg", "png"],
+                                key=f"uploader_s_{siradaki_soru_no}"
+                            )
+                            
+                            if st.button(f"🚀 Soru {siradaki_soru_no}'i Kaydet ve İlerle", use_container_width=True):
+                                if uploaded_file:
+                                    with st.spinner("Fotoğraf güvenli bir şekilde yükleniyor..."):
                                         zaman_damgasi = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                        dosya_uzantisi = dosya.name.split(".")[-1]
-                                        dosya_yolu = f"{dosya_adi_temizle(ogrenci_adi)}/{zaman_damgasi}_soru_{idx}.{dosya_uzantisi}"
+                                        dosya_uzantisi = uploaded_file.name.split(".")[-1]
+                                        dosya_yolu = f"{dosya_adi_temizle(ogrenci_adi)}/{dosya_adi_temizle(secilen_o_konu)}/soru_{siradaki_soru_no}_{zaman_damgasi}.{dosya_uzantisi}"
                                         
-                                        dosya_baytlari = dosya.read()
+                                        dosya_baytlari = uploaded_file.read()
                                         
                                         supabase.storage.from_("question_images").upload(
                                             path=dosya_yolu,
                                             file=dosya_baytlari,
-                                            file_options={"content-type": dosya.type}
+                                            file_options={"content-type": uploaded_file.type}
                                         )
                                         
                                         public_url = supabase.storage.from_("question_images").get_public_url(dosya_yolu)
-                                        yuklenen_url_listesi.append(f"Soru {idx}::{public_url}")
-                                
-                                birlesik_url_metni = "|||".join(yuklenen_url_listesi)
-                                
-                                supabase.table("student_results").insert({
-                                    "student_name": ogrenci_adi,
-                                    "test_id": secilen_test_obje["id"],
-                                    "wrong_questions": birlesik_url_metni,
-                                    "blank_questions": "",
-                                    "is_checked": False
-                                }).execute()
-                                
-                                st.balloons()
-                                st.success("🎉 Harika! Soru fotoğrafların başarıyla öğretmenine iletildi.")
-                            else:
-                                st.warning("Lütfen en az bir adet soru fotoğrafı yükleyin.")
+                                        formatli_veri = f"Soru {siradaki_soru_no}::{public_url}"
+                                        
+                                        supabase.table("student_results").insert({
+                                            "student_name": ogrenci_adi,
+                                            "test_id": test_id,
+                                            "wrong_questions": formatli_veri,
+                                            "blank_questions": "",
+                                            "is_checked": False
+                                        }).execute()
+                                        
+                                        st.success(f"✅ Soru {siradaki_soru_no} başarıyla kaydedildi ve kilitlendi!")
+                                        st.rerun()
+                                else:
+                                    st.warning("Lütfen fotoğraf yükleyin.")
+                        else:
+                            st.balloons()
+                            st.success("🎉 Tebrikler! Bu konudaki tüm 100 sorunun yüklemesini tamamladınız.")
+
+                        # KİLİTLİ VE YÜKLENMİŞ SORULARIN LİSTESİ
+                        st.write("---")
+                        st.subheader("🔒 Yüklenen ve Kilitlenen Sorular")
+                        
+                        if yuklenen_sorular:
+                            for s_num in sorted(yuklenen_sorular.keys()):
+                                with st.expander(f"🔒 Soru {s_num} (Kilitli - Değiştirilemez)"):
+                                    st.image(yuklenen_sorular[s_num], width=350)
+                        else:
+                            st.write("Henüz yüklenmiş soru bulunmamaktadır.")
+
                     else:
-                        st.warning("Bu konuya tanımlı test bulunamadı.")
+                        st.warning("Bu konuya tanımlı soru alanı bulunamadı.")
                 else:
                     st.warning("Bu kitaba tanımlı konu bulunamadı.")
             else:
