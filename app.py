@@ -395,6 +395,7 @@ if panel_modu == "Öğretmen Paneli":
             else:
                 st.info("Sistemde henüz kayıtlı öğrenci bulunmuyor.")
 
+            # 🎯 KİTAP ATAMA VE ATANAN KİTAPLARI GÖRÜNTÜLEME/SİLME ALANI
             st.write("---")
             st.subheader("🎯 Öğrenciye Özel Kitap Atama Paneli")
             if tum_ogrenciler and kitaplar_listesi:
@@ -403,10 +404,44 @@ if panel_modu == "Öğretmen Paneli":
                 with c2: secilen_atama_kitabi = st.selectbox("Tanımlanacak Kitabı Seçin:", list(kitap_id_to_name.values()), key="atama_k")
                 
                 if st.button("Kitabı Bu Öğrenciye Tanımla"):
-                    k_id = [k for k, v in kitap_id_to_name.items() if v == secilen_atama_kitabi][0]
-                    supabase.table("student_book_assignments").insert({"student_name": secilen_atama_ogrencisi, "book_id": k_id}).execute()
-                    st.success("Kitap başarıyla atandı!")
-                    st.rerun()
+                    try:
+                        k_id = [k for k, v in kitap_id_to_name.items() if v == secilen_atama_kitabi][0]
+                        supabase.table("student_book_assignments").insert({
+                            "student_name": secilen_atama_ogrencisi, 
+                            "book_id": k_id
+                        }).execute()
+                        st.success(f"'{secilen_atama_kitabi}' başarıyla {secilen_atama_ogrencisi} kullanıcısına atandı!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    except Exception as err:
+                        st.error(f"⚠️ Kitap atanırken hata oluştu (Sütun adlarını veya Supabase tablosunu kontrol edin): {err}")
+
+            # 📖 HANGİ ÖĞRENCİNİN HANGİ KİTAPLARI KULLANDIĞINI GÖSTEREN TABLO
+            st.write("---")
+            st.subheader("📚 Öğrencilere Tanımlı Kitap Listesi")
+            try:
+                atama_veri = supabase.table("student_book_assignments").select("*").execute()
+                atama_listesi = atama_veri.data if atama_veri else []
+                
+                if atama_listesi:
+                    for atama in atama_listesi:
+                        ogrenci_isimi = atama.get("student_name", "Bilinmeyen Öğrenci")
+                        kitap_numarasi = atama.get("book_id")
+                        kitap_isimi = kitap_id_to_name.get(kitap_numarasi, f"Kitap ID: {kitap_numarasi}")
+                        
+                        col_atama_info, col_atama_del = st.columns([4, 1])
+                        with col_atama_info:
+                            st.write(f"👤 **{ogrenci_isimi}** ➔ 📖 **{kitap_isimi}**")
+                        with col_atama_del:
+                            if st.button("Atamayı Kaldır 🗑️", key=f"del_atama_{atama['id']}"):
+                                supabase.table("student_book_assignments").delete().eq("id", atama["id"]).execute()
+                                st.success("Kitap ataması kaldırıldı.")
+                                st.cache_data.clear()
+                                st.rerun()
+                else:
+                    st.info("Henüz hiçbir öğrenciye kitap tanımlanmamış.")
+            except Exception as e:
+                st.warning(f"Kitap atama verileri çekilemedi: {e}")
 
             st.write("---")
             st.header("📚 Mevcut Müfredat Yapısı ve Veri Ekleme/Silme")
