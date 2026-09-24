@@ -578,15 +578,15 @@ else:
                                         dosya_baytlari = uploaded_file.read()
                                         
                                         try:
-    supabase.storage.from_("question_images").upload(
-        path=dosya_yolu,
-        file=dosya_baytlari,
-        file_options={"content-type": uploaded_file.type}
-    )
-except Exception as storage_err:
-    st.error("⚠️ Fotoğraf Supabase depolama alanına yüklenemedi!")
-    st.info("Lütfen Supabase panelinizde 'question_images' adında PUBLIC bir bucket oluşturulduğundan ve Policies kısmından INSERT izinlerinin açık olduğundan emin olun.")
-    st.stop()
+                                            supabase.storage.from_("question_images").upload(
+                                                path=dosya_yolu,
+                                                file=dosya_baytlari,
+                                                file_options={"content-type": uploaded_file.type}
+                                            )
+                                        except Exception as storage_err:
+                                            st.error("⚠️ Fotoğraf Supabase depolama alanına yüklenemedi!")
+                                            st.info("Lütfen Supabase panelinizde 'question_images' adında PUBLIC bir bucket oluşturulduğundan ve Policies kısmından INSERT izinlerinin açık olduğundan emin olun.")
+                                            st.stop()
                                         
                                         public_url = supabase.storage.from_("question_images").get_public_url(dosya_yolu)
                                         formatli_veri = f"Soru {siradaki_soru_no}::{public_url}"
@@ -598,6 +598,11 @@ except Exception as storage_err:
                                             "blank_questions": "",
                                             "is_checked": False
                                         }).execute()
+                                        
+                                        st.success(f"✅ Soru {siradaki_soru_no} başarıyla kaydedildi ve kilitlendi!")
+                                        st.rerun()
+                                else:
+                                    st.warning("Lütfen fotoğraf yükleyin.")
                                         
                                         st.success(f"✅ Soru {siradaki_soru_no} başarıyla kaydedildi ve kilitlendi!")
                                         st.rerun()
