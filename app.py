@@ -585,7 +585,7 @@ else:
     )
 except Exception as storage_err:
     st.error("⚠️ Fotoğraf Supabase depolama alanına yüklenemedi!")
-    st.info("Lütfen Supabase panelinizde 'question_images' adında PUBLIC bir bucket oluşturulduğundan ve 'Policies' kısmında INSERT izinlerinin açık olduğundan emin olun.")
+    st.info("Lütfen Supabase panelinizde 'question_images' adında PUBLIC bir bucket oluşturulduğundan ve Policies kısmından INSERT izinlerinin açık olduğundan emin olun.")
     st.stop()
                                         
                                         public_url = supabase.storage.from_("question_images").get_public_url(dosya_yolu)
