@@ -414,7 +414,7 @@ if panel_modu == "Öğretmen Paneli":
                         st.cache_data.clear()
                         st.rerun()
                     except Exception as err:
-                        st.error(f"⚠️ Kitap atanırken hata oluştu (Sütun adlarını veya Supabase tablosunu kontrol edin): {err}")
+                        st.error(f"⚠️ Kitap atanırken hata oluştu: {err}")
 
             # 📖 HANGİ ÖĞRENCİNİN HANGİ KİTAPLARI KULLANDIĞINI GÖSTEREN TABLO
             st.write("---")
@@ -598,11 +598,6 @@ else:
                                             "blank_questions": "",
                                             "is_checked": False
                                         }).execute()
-                                        
-                                        st.success(f"✅ Soru {siradaki_soru_no} başarıyla kaydedildi ve kilitlendi!")
-                                        st.rerun()
-                                else:
-                                    st.warning("Lütfen fotoğraf yükleyin.")
                                         
                                         st.success(f"✅ Soru {siradaki_soru_no} başarıyla kaydedildi ve kilitlendi!")
                                         st.rerun()
