@@ -356,9 +356,11 @@ if panel_modu == "Öğretmen Paneli":
             st.header("📈 Akıllı Grafik Analizleri")
             st.info("Sistemdeki öğrenci çözümleri burada görsel grafiklere dönüştürülür.")
 
+        # SEKME 5: SINIF VE MÜFREDAT YÖNETİMİ
         with sekme5:
             st.header("👥 Sınıf Listesi ve Kitap Atama")
             
+            # ➕ YENİ ÖĞRENCİ EKLEME ALANI
             st.subheader("➕ Yeni Öğrenci Ekle")
             c_ekle1, c_ekle2, c_ekle3 = st.columns(3)
             with c_ekle1: y_ad = st.text_input("Ad Soyad:")
@@ -367,11 +369,32 @@ if panel_modu == "Öğretmen Paneli":
                 
             if st.button("Öğrenciyi Kaydet"):
                 if y_ad and y_num and y_sifre:
-                    supabase.table("student_list").insert({"student_name": y_ad, "student_number": y_num, "student_password": y_sifre}).execute()
+                    supabase.table("student_list").insert({
+                        "student_name": y_ad, 
+                        "student_number": y_num, 
+                        "student_password": y_sifre
+                    }).execute()
                     st.success(f"'{y_ad}' başarıyla eklendi!")
                     st.cache_data.clear()
                     st.rerun()
             
+            # 📋 KAYITLI ÖĞRENCİ LİSTESİ VE SİLME ALANI
+            st.write("---")
+            st.subheader("📋 Kayıtlı Öğrenci Listesi")
+            if ogrenciler_data_list:
+                for ogr in ogrenciler_data_list:
+                    col_info, col_del = st.columns([4, 1])
+                    with col_info:
+                        st.write(f"👤 **{ogr['student_name']}** | No: `{ogr.get('student_number', '-')}` | Şifre: `{ogr.get('student_password', '-')}`")
+                    with col_del:
+                        if st.button("Sil 🗑️", key=f"del_ogr_{ogr['id']}"):
+                            supabase.table("student_list").delete().eq("id", ogr["id"]).execute()
+                            st.success(f"{ogr['student_name']} silindi.")
+                            st.cache_data.clear()
+                            st.rerun()
+            else:
+                st.info("Sistemde henüz kayıtlı öğrenci bulunmuyor.")
+
             st.write("---")
             st.subheader("🎯 Öğrenciye Özel Kitap Atama Paneli")
             if tum_ogrenciler and kitaplar_listesi:
@@ -425,7 +448,6 @@ if panel_modu == "Öğretmen Paneli":
                 y_konu = st.text_input("Konu Adı Yazın (Örn: Fonksiyonlar):", key="ekle_konu_input")
                 if st.button("Konuyu Kaydet"):
                     if y_konu: 
-                        # Konu eklenirken otomatik olarak 100 soruluk varsayılan ana test oluşturulur
                         y_konu_res = supabase.table("subjects").insert({"subject_name": y_konu, "book_id": k_secim_listesi[secilen_konu_kitabi]}).execute()
                         if y_konu_res and y_konu_res.data:
                             yeni_konu_id = y_konu_res.data[0]["id"]
@@ -481,7 +503,6 @@ else:
                         secilen_test_obj = testler_db.data[0]
                         test_id = secilen_test_obj["id"]
                         
-                        # Öğrencinin bu testte önceden kaydettiği soruları çekiyoruz
                         mevcut_kayitlar = supabase.table("student_results").select("*").eq("student_name", ogrenci_adi).eq("test_id", test_id).execute()
                         
                         yuklenen_sorular = {}
@@ -490,7 +511,6 @@ else:
                                 w_str = r.get("wrong_questions", "")
                                 if "::" in w_str:
                                     s_no_metin, url = w_str.split("::")
-                                    # "Soru 1" metninden sayısal değeri çıkarma
                                     try:
                                         s_no = int(s_no_metin.replace("Soru", "").strip())
                                         yuklenen_sorular[s_no] = url
@@ -500,8 +520,6 @@ else:
                         st.write("---")
                         st.subheader(f"📸 {secilen_o_konu} - 100 Soru Yükleme Paneli")
                         
-                        # 🔒 KİLİT VE SIRALI İLERLEME MANTIĞI
-                        # Sıradaki boş olan ilk soru belirlenir
                         siradaki_soru_no = 1
                         while siradaki_soru_no in yuklenen_sorular and siradaki_soru_no <= 100:
                             siradaki_soru_no += 1
@@ -510,7 +528,7 @@ else:
                             st.info(f"📌 **Sıradaki Yüklenecek Soru: Soru {siradaki_soru_no}** (Önceki sorular kilitlidir, değiştirilemez.)")
                             
                             uploaded_file = st.file_uploader(
-                                f"Soru {siradaki_soru_no}Fotoğrafını Seçin (JPG, PNG):", 
+                                f"Soru {siradaki_soru_no} Fotoğrafını Seçin (JPG, PNG):", 
                                 type=["jpg", "jpeg", "png"],
                                 key=f"uploader_s_{siradaki_soru_no}"
                             )
@@ -549,7 +567,6 @@ else:
                             st.balloons()
                             st.success("🎉 Tebrikler! Bu konudaki tüm 100 sorunun yüklemesini tamamladınız.")
 
-                        # KİLİTLİ VE YÜKLENMİŞ SORULARIN LİSTESİ
                         st.write("---")
                         st.subheader("🔒 Yüklenen ve Kilitlenen Sorular")
                         
